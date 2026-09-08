@@ -4,8 +4,11 @@ extends Control
 
 @onready var status_label: Label = %StatusLabel
 
+
 func _ready() -> void:
 	%PlayButton.pressed.connect(_on_play_pressed)
+	status_label.text = "Нажми «Играть», чтобы выйти на арену"
+
 
 func _on_play_pressed() -> void:
 	# Один узел-менеджер внутри сцены main:

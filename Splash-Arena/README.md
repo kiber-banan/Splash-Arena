@@ -12,8 +12,8 @@
 
 | Что | Зачем | Где взять |
 |---|---|---|
-| **Godot 4.6.x** (стандартный, не .NET) | движок | https://godotengine.org/download |
-| **Fusion Godot SDK 3.0.0** (ассет Photon) | сеть Fusion 3 | в редакторе: **AssetLib → Photon Fusion** (или с сайта Photon, см. ссылку ниже) |
+| **Godot 4.7.x** (стандартный, не .NET) | движок | https://godotengine.org/download |
+| **Fusion Godot SDK 3.0.0 Preview** (сборка под Godot 4.6+, работает и на 4.7) | сеть Fusion 3 | в редакторе: **AssetLib → Photon Fusion** (или с сайта Photon, см. ссылку ниже) |
 | **Аккаунт Photon + Fusion App** | сетевой доступ (бесплатный план) | https://dashboard.photonengine.com |
 
 > Файлы Fusion-плагина (папку `addons/fusion/`) клади **вручную** — она в `.gitignore`,
@@ -28,7 +28,7 @@
 ## 2. Первый запуск — по шагам
 
 1. Склонируй репозиторий (или открой его в Godot).
-2. Открой проект в Godot 4.6 — редактор создаст `.godot/` сам.
+2. Открой проект в Godot 4.7 — редактор создаст `.godot/` сам.
 3. Поставь плагин Fusion:
    - **AssetLib → ищи `Photon Fusion` → Download → Install**, либо
    - скачай SDK с сайта Photon и скопируй папку `fusion/` в `addons/`.
@@ -65,6 +65,7 @@
 ```
 scenes/
   main/main.tscn           # главная сцена: свет, вода, арена, менеджер матча
+                             # (+ PreviewCamera: вид на арену, пока твой дайвер не заспавнился)
   player/player.tscn       # дайвер: CharacterBody3D + FusionServerReplicator + камера
   ui/main_menu.tscn        # стартовое меню (запуск игры)
 scripts/
@@ -115,7 +116,7 @@ addons/fusion/             # ⛔ НЕ в git — ставится вручную
 **`config/secret.cfg` не найден / App ID пуст** → скопируй шаблон и вставь ID (шаг 2.4).
 
 **Fusion не загружается / ошибки GDExtension** → проверь, что папка `addons/fusion/`
-на месте и что установлен именно **Godot 4.6.x** (SDK собран под 4.6).
+на месте и что установлен именно **Godot 4.7.x** (SDK собран под 4.6, работает на 4.6+).
 
 **Не видно второго игрока / нет соединения** → запусти 2 инстанса (раздел 3);
 убедись, что Photon-аккаунт активирован и App ID верный.
@@ -127,15 +128,16 @@ addons/fusion/             # ⛔ НЕ в git — ставится вручную
 
 ## 7. CI: авто-проверка проекта (GitHub Actions)
 
-В `.github/workflows/ci.yml` при каждом пуше Godot headless импортирует проект
-и проверяет, что он открывается без ошибок. Нужно настроить **один секрет**:
+В `.github/workflows/ci.yml` (**в корне репозитория**) при каждом пуше Godot 4.7 headless
+импортирует проект и проверяет, что он открывается без ошибок. Fusion SDK CI ставит сам:
+по умолчанию качается публичное превью с сайта Photon, а если хочешь зафиксировать
+конкретную сборку — задай свой URL зеркала:
 
 1. На GitHub: **Settings → Secrets and variables → Actions**.
-2. Добавь секрет `FUSION_7Z_URL` — прямую ссылку на архив Fusion SDK
-   (например `https://downloads.photonengine.com/download/fusion-godot/...7z?pre=sp`).
-   CI скачает его на раннер и положит в `addons/fusion/` перед проверкой.
+2. Добавь переменную `FUSION_7Z_URL` (или секрет с тем же именем) — прямую ссылку
+   на архив Fusion SDK (например `https://downloads.photonengine.com/download/fusion-godot/...7z?pre=sp`).
+   CI скачает его на раннер и положит в `Splash-Arena/addons/fusion/` перед проверкой.
 3. Запушь — увидишь галочку CI в PR.
 
-> Без секрета CI упадёт на шаге установки Fusion — это нормально, просто
-> добавь ссылку, когда будешь готов. Сам код проекта проверяется и без сети Fusion:
-> скрипты и сцены обязаны открываться чисто.
+> Без переменной CI просто возьмёт публичное превью — проверка всё равно сработает.
+> Сам код проекта проверяется и без сети Fusion: скрипты и сцены обязаны открываться чисто.
