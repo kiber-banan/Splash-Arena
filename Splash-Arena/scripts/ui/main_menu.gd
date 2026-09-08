@@ -13,6 +13,8 @@ const MAIN_SCENE := "res://scenes/main/main.tscn"
 @onready var status_label: Label = %StatusLabel
 @onready var nick_edit: LineEdit = %NickEdit
 @onready var code_edit: LineEdit = %CodeEdit
+@onready var char_select: OptionButton = %CharSelect
+@onready var char_info: Label = %CharInfo
 
 var _pending_room := ""
 var _busy := false
@@ -20,6 +22,8 @@ var _busy := false
 
 func _ready() -> void:
 	nick_edit.text = Session.nickname
+	_fill_characters()
+	char_select.item_selected.connect(_on_character_selected)
 	%CreateButton.pressed.connect(_on_create_pressed)
 	%JoinButton.pressed.connect(_on_join_pressed)
 	%QuickButton.pressed.connect(_on_quick_pressed)
@@ -41,6 +45,23 @@ func _exit_tree() -> void:
 		Fusion.connected_to_photon.disconnect(_on_connected_to_photon)
 	if Fusion.connection_failed.is_connected(_on_connection_failed):
 		Fusion.connection_failed.disconnect(_on_connection_failed)
+
+
+# ---------- выбор персонажа ----------
+
+func _fill_characters() -> void:
+	for i in Characters.COUNT:
+		char_select.add_item(Characters.name_for(i), i)
+	char_select.select(Session.character_id)
+	_update_character_info(Session.character_id)
+
+
+func _on_character_selected(_index: int) -> void:
+	_update_character_info(char_select.get_selected_id())
+
+
+func _update_character_info(character_id: int) -> void:
+	char_info.text = Characters.description_for(character_id)
 
 
 # ---------- кнопки ----------
@@ -74,6 +95,7 @@ func _enter_room(room_name: String, message: String) -> void:
 	if _busy:
 		return
 	Session.nickname = Session.sanitize_nick(nick_edit.text)
+	Session.character_id = char_select.get_selected_id()
 	_pending_room = room_name
 	_set_status(message)
 	var app_id := AppConfig.get_app_id()

@@ -23,7 +23,6 @@ extends Node3D
 ##   Player: локальный игрок готов (...)
 ## Если лог обрывается — обрыв ровно в этом месте (см. HUD-лейбл).
 
-const PlayerScene := preload("res://scenes/player/player.tscn")
 const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 const GROUP := "match_manager"
 
@@ -42,7 +41,9 @@ func _ready() -> void:
 	Fusion.player_left.connect(_on_player_left)
 	Fusion.connection_failed.connect(_on_connection_failed)
 	Fusion.register_broadcast_receiver(self)
-	spawner.add_spawnable_scene(PlayerScene)
+	# ВАЖНО: все клиенты регистрируют сцены в одном и том же порядке.
+	for i in Characters.COUNT:
+		spawner.add_spawnable_scene(Characters.scene_for(i))
 
 	if Fusion.is_in_room():
 		# Меню уже завело нас в комнату — спавнимся сразу.
@@ -116,10 +117,10 @@ func _on_room_joined() -> void:
 	_announce_self()
 	if Fusion.is_master_client():
 		# Хост (сервер) спавнит собственного игрока.
-		_spawn_player(Fusion.get_local_player_id())
+		_spawn_player(Fusion.get_local_player_id(), Session.character_id)
 	else:
 		# Клиент просит сервер заспавнить его (broadcast-RPC).
-		Fusion.rpc(request_spawn)
+		Fusion.rpc(request_spawn, Session.character_id)
 		# На всякий случай: если сервер не ответил (например, он ещё
 		# не зарегистрировал спавнер), повторяем запрос через секунду.
 		_retry_spawn_request.call_deferred()
@@ -155,7 +156,7 @@ func _retry_spawn_request() -> void:
 	if get_tree().get_first_node_in_group(Player.GROUP_LOCAL_PLAYER) != null:
 		return
 	print("MatchManager: повторяю запрос спавна")
-	Fusion.rpc(request_spawn)
+	Fusion.rpc(request_spawn, Session.character_id)
 
 
 # ---------- список игроков (ники) ----------
@@ -189,25 +190,26 @@ func get_roster_text() -> String:
 	for pid in _roster.keys():
 		var entry: Dictionary = _roster[pid]
 		var nick := str(entry.get("nick", "???"))
+		nick += " — " + Characters.name_for(int(entry.get("char", 0)))
 		if pid == local_id:
 			nick += " (ты)"
 		if Fusion.is_master_client() and pid == local_id:
 			nick += " [хост]"
 		lines.append("• " + nick)
 	if lines.is_empty():
-		lines.append("• " + Session.nickname + " (ты)")
+		lines.append("• " + Session.nickname + " — " + Characters.name_for(Session.character_id) + " (ты)")
 	return lines.join("\n")
 
 
 # ---------- спавн ----------
 
 @rpc("any_peer", "call_local")
-func request_spawn() -> void:
+func request_spawn(character_id: int) -> void:
 	# Вызывается на сервере (и локально у отправителя — call_local).
 	# Спавнит только master client.
 	if not Fusion.is_master_client():
 		return
-	_spawn_player(Fusion.get_rpc_sender())
+	_spawn_player(Fusion.get_rpc_sender(), character_id)
 
 
 @rpc("any_peer", "call_remote")
@@ -224,19 +226,20 @@ func claim_local_player(player: Node) -> void:
 
 
 func _on_player_left(player_id: int, is_inactive: bool) -> void:
-	_roster.erase(player_id)
 	if is_inactive:
 		# Пир в пределах player_ttl и может переподключиться — персонажа пока оставляем.
 		return
+	_roster.erase(player_id)
 	if Fusion.is_master_client() and _spawned_for.has(player_id):
 		spawner.despawn(_spawned_for[player_id])
 		_spawned_for.erase(player_id)
 
 
-func _spawn_player(player_id: int) -> void:
+func _spawn_player(player_id: int, character_id: int) -> void:
 	if _spawned_for.has(player_id):
 		return
-	var player := spawner.spawn() as Player
+	var scene := Characters.scene_for(character_id)
+	var player := spawner.spawn(scene) as Player
 	if player == null:
 		push_error("MatchManager: спавнер вернул не Player.")
 		return
@@ -244,7 +247,8 @@ func _spawn_player(player_id: int) -> void:
 	var rep := player.get_node("FusionServerReplicator") as FusionServerReplicator
 	rep.set_input_authority(player_id)
 	_spawned_for[player_id] = player
-	print("MatchManager: спавн игрока для pid=%d (input_authority выдан)" % player_id)
+	print("MatchManager: спавн игрока для pid=%d — %s (input_authority выдан)"
+		% [player_id, Characters.name_for(player.character_id)])
 
 	# Если этот игрок — я сам, включаем ему локальное управление и камеру.
 	if player_id == Fusion.get_local_player_id():

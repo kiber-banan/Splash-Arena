@@ -27,6 +27,8 @@ const CROSSHAIR_GAP := 4.0
 @onready var room_info: Label = %RoomInfo
 @onready var player_list: Label = %PlayerList
 @onready var health_bar: ProgressBar = %HealthBar
+@onready var ability_bar: ProgressBar = %AbilityBar
+@onready var ability_label: Label = %AbilityLabel
 @onready var health_label: Label = %HealthLabel
 @onready var damage_flash: ColorRect = %DamageFlash
 @onready var center_message: Label = %CenterMessage
@@ -122,7 +124,9 @@ func _update_vitals() -> void:
 	var me := _local_player()
 	if me == null:
 		health_bar.value = 0.0
+		ability_bar.value = 0.0
 		health_label.text = "HP —"
+		ability_label.text = "Способность —"
 		_last_player = null
 		return
 	if me != _last_player:
@@ -131,6 +135,8 @@ func _update_vitals() -> void:
 	health_bar.max_value = float(me.max_hp)
 	health_bar.value = float(me.hp)
 	health_label.text = "HP %d / %d  •  смерти: %d" % [me.hp, me.max_hp, me.deaths]
+	ability_bar.value = me.get_ability_cooldown_ratio() * 100.0
+	ability_label.text = "%s • %s (E)" % [me.character_name, me.ability_name]
 	if me.deaths > _last_deaths:
 		show_message("ВАС УБИЛИ")
 	_last_deaths = me.deaths

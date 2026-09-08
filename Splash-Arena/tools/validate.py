@@ -175,10 +175,41 @@ MENU_UNIQUE = {
     "CreateButton": "MainMenu/Center/VBox/CreateButton",
     "JoinButton": "MainMenu/Center/VBox/CodeRow/JoinButton",
     "QuickButton": "MainMenu/Center/VBox/QuickButton",
+    "CharSelect": "MainMenu/Center/VBox/CharRow/CharSelect",
+    "CharInfo": "MainMenu/Center/VBox/CharInfo",
 }
 for nm, path in MENU_UNIQUE.items():
     if unode(path).get("unique_name_in_owner") != "true":
         fail(f"main_menu.tscn: {nm} ({path}) без unique_name_in_owner")
+
+# ---------- 2b. Персонажи (3 сцены-наследника player.tscn) ----------
+CHARACTER_SCENES = {
+    "Штурмовик": "scenes/player/player_assault.tscn",
+    "Медик": "scenes/player/player_medic.tscn",
+    "Разведчик": "scenes/player/player_scout.tscn",
+}
+CHARACTER_IDS = []
+for cname, crel in CHARACTER_SCENES.items():
+    if not (ROOT / crel).exists():
+        fail(f"нет сцены персонажа {crel}")
+        continue
+    _, cexts, _, cnodes = check_tscn(crel)
+    croots = [k for k in cnodes if "/" not in k]
+    if len(croots) != 1:
+        fail(f"{crel}: ожидался один корневой узел")
+        continue
+    cnode = cnodes[croots[0]]
+    minst = re.search(r'ExtResource[(]"([^"]+)"[)]', cnode.get("_attrs", {}).get("instance", ""))
+    base_scene = cexts.get(minst.group(1), {}).get("path", "") if minst else ""
+    if base_scene != "res://scenes/player/player.tscn":
+        fail(f"{crel}: корень должен наследоваться от scenes/player/player.tscn, а не {base_scene}")
+    for prop in ("character_id", "character_name", "max_hp", "move_speed", "suit_color", "ability_name", "ability_cooldown"):
+        if prop not in cnode:
+            fail(f"{crel}: не переопределён экспорт {prop}")
+    if "character_id" in cnode:
+        CHARACTER_IDS.append(int(cnode["character_id"]))
+if sorted(CHARACTER_IDS) != [0, 1, 2]:
+    fail(f"character_id у персонажей должны быть 0,1,2 — получено {sorted(CHARACTER_IDS)}")
 
 hud_in_main = mnode("Main/HUD")
 if 'ExtResource("5_hud")' not in hud_in_main.get("_attrs", {}).get("instance", ""):
@@ -190,7 +221,7 @@ if "hud.gd" not in script_of(hext, hroot):
     fail("hud.tscn: у корня HUD нет скрипта hud.gd")
 if hroot.get("mouse_filter") != "3":
     fail("hud.tscn: корень HUD должен быть mouse_filter=3 (IGNORE), иначе мышь не дойдёт до игрока")
-for nm in ("DebugLabel", "RoomInfo", "PlayerList", "HintLabel"):
+for nm in ("DebugLabel", "RoomInfo", "PlayerList", "HintLabel", "HealthBar", "HealthLabel", "AbilityBar", "AbilityLabel", "DamageFlash", "CenterMessage"):
     if h.get("HUD/" + nm, {}).get("unique_name_in_owner") != "true":
         fail(f"hud.tscn: {nm} без unique_name_in_owner")
 
@@ -200,6 +231,7 @@ GD = {
     "scripts/player/player.gd": ("scenes/player/player.tscn", "Player", pexp),
     "scripts/ui/main_menu.gd": ("scenes/ui/main_menu.tscn", "MainMenu", uexp),
     "scripts/ui/hud.gd": ("scenes/main/main.tscn", "Main/HUD", mexp),
+    "scripts/player/characters.gd": (None, None, None),
     "scripts/world/underwater_light.gd": ("scenes/main/main.tscn", "Main/UnderwaterLight", mexp),
     "scripts/world/arena.gd": ("scenes/main/main.tscn", "Main/Arena", mexp),
     "autoload/app_config.gd": (None, None, None),
@@ -325,6 +357,11 @@ for rel, (scene, base, nodes) in GD.items():
                 fail(f"{rel}:{n}: функции {name}() не существует в Godot — используй {BANNED_CALLS[name]}()")
             else:
                 warn(f"{rel}:{n}: неизвестная функция {name}() — опечатка? Её нет в @GlobalScope и в проекте")
+
+# ---------- 3c. Спавнер: все персонажи зарегистрированы ----------
+mm_src = (ROOT / "scripts/main/match_manager.gd").read_text(encoding="utf-8")
+if "Characters.scene_for" not in mm_src or "add_spawnable_scene" not in mm_src:
+    fail("match_manager.gd: не регистрирует сцены персонажей через Characters.scene_for")
 
 # ---------- 4. project.godot ----------
 pg = (ROOT / "project.godot").read_text(encoding="utf-8")

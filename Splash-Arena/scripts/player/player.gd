@@ -32,7 +32,6 @@ extends CharacterBody3D
 ##  2. мастер шлёт RPC claim_local_player(player) на машину владельца;
 ##  3. сам персонаж ловит has_input_authority() в _physics_process.
 
-const MOVE_SPEED := 6.0        # м/с, горизонталь
 const VERT_SPEED := 4.0        # м/с, вертикаль (всплытие/погружение)
 const LOOK_SENS := 0.003       # чувствительность мыши
 const PITCH_LIMIT := 1.35      # ~77°, предел наклона камеры
@@ -55,12 +54,31 @@ const INPUT_SIZE := 32
 const BUTTON_FIRE := 1
 const BUTTON_ABILITY := 2
 
+## Кто я по классу. Константы дублируют Characters, но player.gd НЕ должен
+## зависеть от characters.gd: иначе получается цикл
+## player.gd -> Characters -> preload(player_medic.tscn) -> player.gd.
+const CHARACTER_ASSAULT := 0
+const CHARACTER_MEDIC := 1
+const CHARACTER_SCOUT := 2
+
 const GROUP_LOCAL_PLAYER := "local_player"
 const GROUP_PREVIEW_CAMERA := "preview_camera"
 const GROUP_EFFECTS := "effects"
 const GROUP_SPAWN_POINTS := "spawn_points"
 
+## Статы персонажа. Значения ниже — дефолт («Штурмовик»); настоящие
+## статы лежат в трёх сценах-наследниках: player_assault / player_medic /
+## player_scout. Скрипт у всех один, спавнер выбирает сцену по character_id.
+@export var character_id := CHARACTER_ASSAULT
+@export var character_name := "Штурмовик"
 @export var max_hp := 100
+@export var move_speed := 6.0            # м/с, горизонталь
+@export var suit_color := Color(1.0, 0.45, 0.12, 1.0)
+@export var ability_name := "Рывок"
+@export var ability_cooldown := 5.0      # сек, кулдаун способности
+@export var ability_duration := 0.25     # сек, сколько действует эффект
+@export var ability_speed_multiplier := 3.0  # множитель скорости (рывок/ускорение)
+@export var ability_heal := 0            # HP, сколько лечит медик
 
 @onready var camera_rig: Camera3D = $CameraRig
 @onready var replicator: FusionServerReplicator = $FusionServerReplicator
@@ -78,6 +96,8 @@ var _is_local_player := false
 var _yaw := 0.0
 var _pitch := 0.0
 var _fire_cooldown := 0.0
+var _ability_cooldown_left := 0.0
+var _ability_time_left := 0.0
 
 
 func _enter_tree() -> void:
@@ -93,8 +113,26 @@ func _ready() -> void:
 	if not replicator.on_process_input.is_connected(_on_fusion_input):
 		replicator.on_process_input.connect(_on_fusion_input)
 	hp = max_hp
+	_apply_suit_color()
 	if not is_in_group(GROUP_LOCAL_PLAYER) and replicator.has_input_authority():
 		setup_local_player()
+
+
+func _apply_suit_color() -> void:
+	## Красим гидрокостюм в цвет персонажа. Материал дублируем — иначе
+	## все игроки покрасятся в цвет последнего заспавненного.
+	var body := $BodyMesh as MeshInstance3D
+	if body == null:
+		return
+	var mat := body.get_surface_override_material(0) as StandardMaterial3D
+	if mat == null:
+		mat = StandardMaterial3D.new()
+	else:
+		mat = mat.duplicate() as StandardMaterial3D
+	if mat == null:
+		return
+	mat.albedo_color = suit_color
+	body.set_surface_override_material(0, mat)
 
 
 func setup_local_player() -> void:
@@ -139,7 +177,9 @@ static func random_spawn_position(tree: SceneTree) -> Vector3:
 	## Случайная точка респауна (ноды-маркеры в группе spawn_points).
 	var holder := tree.get_first_node_in_group(GROUP_SPAWN_POINTS) as Node3D
 	if holder != null and holder.get_child_count() > 0:
-		return holder.get_child(randi() % holder.get_child_count()).global_position
+		var marker := holder.get_child(randi() % holder.get_child_count()) as Node3D
+		if marker != null:
+			return marker.global_position
 	return Vector3(0.0, 1.5, 0.0)
 
 
@@ -229,12 +269,18 @@ func _on_fusion_input(_tick: int, delta_time: float, payload: PackedByteArray, i
 
 	debug_inputs_executed += 1
 
+	# Yaw/pitch взгляда обновляем ВСЕГДА (не только у локального игрока):
+	# сервер симулирует чужих дайверов и должен стрелять из их глаз
+	# по их же направлению взгляда, иначе гарпун уйдёт горизонтально.
+	# У локального игрока значения из ввода совпадают с его мышью.
+	_yaw = yaw
+	_pitch = pitch
 	rotation.y = yaw
-	# Корпус поворачивается по yaw везде; наклон головы — визуал,
-	# но сервер использует его для рейкаста (хитскан от камеры).
 	camera_rig.rotation.x = pitch
-	if _is_local_player:
-		_pitch = pitch
+
+	# Способность обновляем ДО движения: рывок/ускорение должны
+	# подхватиться этим же пакетом ввода.
+	_update_ability(delta_time, buttons)
 
 	# Направление относительно поворота персонажа (Yaw).
 	var body_basis := global_transform.basis
@@ -243,7 +289,7 @@ func _on_fusion_input(_tick: int, delta_time: float, payload: PackedByteArray, i
 	if direction.length() > 1.0:
 		direction = direction.normalized()
 
-	velocity = direction * MOVE_SPEED
+	velocity = direction * get_current_speed()
 	velocity.y = vertical * VERT_SPEED
 	# Подводный бой: плавучесть и сопротивление воды пока игнорируем,
 	# TODO: добавим физику воды (тяга, инерция) вместе с геймплеем.
@@ -263,6 +309,48 @@ func _update_weapon(delta_time: float, buttons: int, is_new: bool) -> void:
 
 func get_fire_cooldown_ratio() -> float:
 	return clampf(_fire_cooldown / FIRE_COOLDOWN, 0.0, 1.0)
+
+
+# ---------- способность (клавиша E) ----------
+#
+# Бит BUTTON_ABILITY едет в пакете ввода, исполняется в process_input:
+# на сервере — авторитетно, у клиента — в предсказании. Значение не
+# реплицируется как свойство: эффект (таймер/HP) живёт в симуляции,
+# а кулдаун — локальный таймер, который тикает одинаково на обеих сторонах.
+
+func get_current_speed() -> float:
+	if _ability_time_left > 0.0:
+		return move_speed * ability_speed_multiplier
+	return move_speed
+
+
+func get_ability_cooldown_ratio() -> float:
+	## 0 — только что использована, 1 — готова.
+	if ability_cooldown <= 0.0:
+		return 1.0
+	return clampf(1.0 - _ability_cooldown_left / ability_cooldown, 0.0, 1.0)
+
+
+func _update_ability(delta_time: float, buttons: int) -> void:
+	_ability_cooldown_left = maxf(_ability_cooldown_left - delta_time, 0.0)
+	_ability_time_left = maxf(_ability_time_left - delta_time, 0.0)
+	if (buttons & BUTTON_ABILITY) != 0 and _ability_cooldown_left <= 0.0:
+		_ability_cooldown_left = ability_cooldown
+		_use_ability()
+
+
+func _use_ability() -> void:
+	match character_id:
+		CHARACTER_MEDIC:
+			# Лечение: применяем сразу на всех пирах (HP в HUD без задержки),
+			# сервер вдогонку присылает авторитетное значение.
+			hp = mini(hp + ability_heal, max_hp)
+			if replicator.has_authority():
+				Fusion.rpc(sync_vitals, hp, deaths)
+		_:
+			# Штурмовик (рывок) и разведчик (ускорение): множитель скорости
+			# на время ability_duration, направление берётся из ввода.
+			_ability_time_left = ability_duration
 
 
 func _shoot(is_new: bool) -> void:

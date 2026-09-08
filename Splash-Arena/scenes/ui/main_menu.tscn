@@ -48,6 +48,27 @@ theme_override_font_sizes/font_size = 20
 text = "Дайвер"
 max_length = 16
 
+[node name="CharRow" type="HBoxContainer" parent="Center/VBox"]
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="CharLabel" type="Label" parent="Center/VBox/CharRow"]
+custom_minimum_size = Vector2(96, 36)
+theme_override_font_sizes/font_size = 20
+text = "Класс:"
+vertical_alignment = 1
+
+[node name="CharSelect" type="OptionButton" parent="Center/VBox/CharRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 40)
+theme_override_font_sizes/font_size = 18
+
+[node name="CharInfo" type="Label" parent="Center/VBox"]
+unique_name_in_owner = true
+theme_override_font_sizes/font_size = 15
+text = "..."
+horizontal_alignment = 1
+
 [node name="CreateButton" type="Button" parent="Center/VBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(320, 56)
