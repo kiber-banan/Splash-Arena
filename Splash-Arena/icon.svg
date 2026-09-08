@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d4a6e"/>
+      <stop offset="1" stop-color="#04202f"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7fd4e8" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#1b8fb0" stop-opacity="0.9"/>
+    </radialGradient>
+  </defs>
+
+  <!-- фон: глубина воды -->
+  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
+
+  <!-- лучи света с поверхности -->
+  <path d="M22 -10 L48 60 L18 60 Z" fill="#ffffff" opacity="0.07"/>
+  <path d="M98 -10 L118 60 L86 60 Z" fill="#ffffff" opacity="0.05"/>
+
+  <!-- пузырьки -->
+  <circle cx="38" cy="24" r="3"  fill="#ffffff" opacity="0.35"/>
+  <circle cx="52" cy="14" r="2"  fill="#ffffff" opacity="0.25"/>
+  <circle cx="96" cy="30" r="2.5" fill="#ffffff" opacity="0.3"/>
+
+  <!-- шлем дайвера -->
+  <circle cx="64" cy="64" r="34" fill="none" stroke="#ffd166" stroke-width="7"/>
+  <circle cx="64" cy="64" r="24" fill="url(#glass)"/>
+
+  <!-- блик на стекле -->
+  <ellipse cx="54" cy="55" rx="8" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-25 54 55)"/>
+
+  <!-- прицел -->
+  <g stroke="#ffd166" stroke-width="3" stroke-linecap="round">
+    <line x1="64" y1="44" x2="64" y2="50"/>
+    <line x1="64" y1="78" x2="64" y2="84"/>
+    <line x1="44" y1="64" x2="50" y2="64"/>
+    <line x1="78" y1="64" x2="84" y2="64"/>
+  </g>
+  <circle cx="64" cy="64" r="2.5" fill="#ffd166"/>
+</svg>
