@@ -7,23 +7,58 @@ extends Control
 ## photon -> room_joined -> spawn -> set_input_authority -> setup_local_player.
 ##
 ## Шаг 2 — код комнаты, счёт игроков, список ников, выход по ESC.
+## Шаг 3 — прицел, хит-маркер, полоса HP, красная вспышка при уроне.
+## Шаг 4 добавит полосу кулдауна способности.
 ##
-## Шаги 3-4 добавляют прицел, полосу HP и кулдаун способности.
+## HUD зарегистрирован как broadcast-приёмник Fusion: сервер шлёт сюда
+## rpc_to_player(notify_hit_confirmed) — «твой гарпун попал».
 ##
-## ВАЖНО: корень HUD имеет mouse_filter = IGNORE, иначе Control-узел
-## перехватит движение мыши и _unhandled_input у игрока не сработает
+## ВАЖНО: корень HUD (и все его дочерние Control) имеют mouse_filter = IGNORE,
+## иначе они перехватят движение мыши и _unhandled_input у игрока не сработает
 ## (классический «камера не крутится»).
 
-const REFRESH_SEC := 0.2  # как часто обновляем тексты
+const REFRESH_SEC := 0.2      # как часто обновляем тексты/полосы
+const HITMARKER_SEC := 0.2    # сколько живёт хит-маркер
+const MESSAGE_SEC := 1.4      # сколько живёт сообщение по центру
+const CROSSHAIR_ARM := 8.0
+const CROSSHAIR_GAP := 4.0
 
 @onready var debug_label: Label = %DebugLabel
 @onready var room_info: Label = %RoomInfo
 @onready var player_list: Label = %PlayerList
+@onready var health_bar: ProgressBar = %HealthBar
+@onready var health_label: Label = %HealthLabel
+@onready var damage_flash: ColorRect = %DamageFlash
+@onready var center_message: Label = %CenterMessage
 
 var _refresh_left := 0.0
+var _hitmarker_left := 0.0
+var _message_left := 0.0
+var _last_deaths := 0
+var _last_player: Player = null
+var _flash_tween: Tween = null
+
+
+func _ready() -> void:
+	queue_redraw()  # рисуем прицел
+	Fusion.register_broadcast_receiver(self)
+
+
+func _exit_tree() -> void:
+	# Иначе у Fusion останется висячая ссылка на удалённый узел (см. доку RPC).
+	if Fusion:
+		Fusion.unregister_broadcast_receiver(self)
 
 
 func _process(delta: float) -> void:
+	if _hitmarker_left > 0.0:
+		_hitmarker_left -= delta
+		if _hitmarker_left <= 0.0:
+			queue_redraw()  # стереть хит-маркер
+	if _message_left > 0.0:
+		_message_left -= delta
+		if _message_left <= 0.0:
+			center_message.text = ""
 	_refresh_left -= delta
 	if _refresh_left > 0.0:
 		return
@@ -32,6 +67,7 @@ func _process(delta: float) -> void:
 	room_info.text = _build_room_text()
 	var mm := _match_manager()
 	player_list.text = mm.get_roster_text() if mm != null else ""
+	_update_vitals()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -40,6 +76,64 @@ func _unhandled_input(event: InputEvent) -> void:
 		if mm != null:
 			get_viewport().set_input_as_handled()
 			mm.leave_to_menu()
+
+
+# ---------- уведомления от игрока/сервера ----------
+
+@rpc("any_peer", "call_remote")
+func notify_hit_confirmed() -> void:
+	## Сервер подтвердил попадание (шлёт стрелку через rpc_to_player).
+	_hitmarker_left = HITMARKER_SEC
+	queue_redraw()
+
+
+func notify_local_damaged() -> void:
+	## Эту машину ранили — красная вспышка на весь экран.
+	if _flash_tween != null and _flash_tween.is_valid():
+		_flash_tween.kill()
+	damage_flash.modulate = Color(1, 1, 1, 0.45)
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(damage_flash, "modulate", Color(1, 1, 1, 0.0), 0.4)
+
+
+func show_message(text: String) -> void:
+	center_message.text = text
+	_message_left = MESSAGE_SEC
+
+
+# ---------- отрисовка прицела и хит-маркера ----------
+
+func _draw() -> void:
+	var center := size / 2.0
+	var color := Color(0.85, 1.0, 1.0, 0.9)
+	for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+		draw_line(center + d * CROSSHAIR_GAP, center + d * (CROSSHAIR_GAP + CROSSHAIR_ARM), color, 2.0)
+	draw_circle(center, 1.5, color)
+	if _hitmarker_left > 0.0:
+		var alpha := clampf(_hitmarker_left / HITMARKER_SEC, 0.0, 1.0)
+		var hit_color := Color(1.0, 0.35, 0.3, alpha)
+		for d in [Vector2(1, 1), Vector2(1, -1), Vector2(-1, 1), Vector2(-1, -1)]:
+			draw_line(center + d * 5.0, center + d * 13.0, hit_color, 2.0)
+
+
+# ---------- тексты ----------
+
+func _update_vitals() -> void:
+	var me := _local_player()
+	if me == null:
+		health_bar.value = 0.0
+		health_label.text = "HP —"
+		_last_player = null
+		return
+	if me != _last_player:
+		_last_player = me
+		_last_deaths = me.deaths
+	health_bar.max_value = float(me.max_hp)
+	health_bar.value = float(me.hp)
+	health_label.text = "HP %d / %d  •  смерти: %d" % [me.hp, me.max_hp, me.deaths]
+	if me.deaths > _last_deaths:
+		show_message("ВАС УБИЛИ")
+	_last_deaths = me.deaths
 
 
 static func _yes(b: bool) -> String:

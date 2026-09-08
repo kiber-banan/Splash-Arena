@@ -242,7 +242,9 @@ connect disconnect is_connected emit_signal get_viewport get_world_3d
 get_first_node_in_group get_nodes_in_group create_timer change_scene_to_file
 reload_current_scene quit set_input_authority has_input_authority has_authority
 get_input_authority add_spawnable_scene spawn despawn rpc rpc_id has_method
-intersect_ray get_property_list
+intersect_ray get_property_list queue_redraw create_tween kill is_valid
+draw_line draw_circle draw_rect draw_arc tween_property tween_callback
+set_input_as_handled is_action_pressed get_rid get_world_3d
 """.split())
 BUILTIN_FUNCS = set("""
 abs absf absi acos acosh angle_difference asin asinh assert atan atan2 atanh

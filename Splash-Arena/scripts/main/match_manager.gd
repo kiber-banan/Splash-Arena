@@ -240,7 +240,7 @@ func _spawn_player(player_id: int) -> void:
 	if player == null:
 		push_error("MatchManager: спавнер вернул не Player.")
 		return
-	player.position = Vector3(randf_range(-3.0, 3.0), 1.0, randf_range(-3.0, 3.0))
+	player.position = Player.random_spawn_position(get_tree())
 	var rep := player.get_node("FusionServerReplicator") as FusionServerReplicator
 	rep.set_input_authority(player_id)
 	_spawned_for[player_id] = player
