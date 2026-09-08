@@ -1,0 +1,57 @@
+name: CI — Splash Arena (Godot + Fusion)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    name: Validate project (headless Godot)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Сам Godot-проект лежит во вложенной папке, а не в корне репозитория.
+        working-directory: Splash-Arena
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install 7z
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+
+      - name: Install Fusion SDK
+        env:
+          FUSION_7Z_URL_VARS: ${{ vars.FUSION_7Z_URL }}
+          FUSION_7Z_URL_SECRET: ${{ secrets.FUSION_7Z_URL }}
+        run: |
+          set -euxo pipefail
+          # Свой URL зеркала (vars/secrets) — если задан, иначе публичное превью SDK.
+          SDK_URL="${FUSION_7Z_URL_VARS:-$FUSION_7Z_URL_SECRET}"
+          if [ -z "$SDK_URL" ]; then
+            SDK_URL="https://downloads.photonengine.com/download/latest/photon-fusion-godot-sdk-3-godot-46"
+            echo "FUSION_7Z_URL не задан — качаю публичное превью SDK."
+          fi
+          mkdir -p /tmp/fusion-dl /tmp/fusion-x
+          curl -fL -o /tmp/fusion-dl/fusion.7z "$SDK_URL"
+          7z x -y /tmp/fusion-dl/fusion.7z -o/tmp/fusion-x
+          mkdir -p addons
+          cp -r /tmp/fusion-x/* addons/
+          ls addons/fusion | head -n 20
+
+      - name: Download Godot 4.7.2
+        run: |
+          set -euxo pipefail
+          curl -fL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip"
+          unzip -o /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+
+      - name: Validate project (headless import)
+        run: |
+          set -euxo pipefail
+          /tmp/godot --headless --path . --import 2>&1 | tail -40
+
+      - name: Smoke run (5 s, tolerant)
+        run: |
+          /tmp/godot --headless --path . --quit-after 5 2>&1 | tail -30 || true

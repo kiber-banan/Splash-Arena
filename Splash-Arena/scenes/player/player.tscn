@@ -1,0 +1,64 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_suit"]
+albedo_color = Color(1, 0.45, 0.12, 1)
+roughness = 0.55
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_helmet"]
+albedo_color = Color(0.16, 0.2, 0.26, 1)
+metallic = 0.3
+roughness = 0.4
+
+[sub_resource type="SphereMesh" id="SphereMesh_helmet"]
+radius = 0.3
+height = 0.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_visor"]
+albedo_color = Color(0.3, 0.9, 1, 1)
+emission_enabled = true
+emission = Color(0.3, 0.9, 1, 1)
+emission_energy_multiplier = 1.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_visor"]
+size = Vector3(0.34, 0.16, 0.1)
+
+[node name="Player" type="CharacterBody3D"]
+motion_mode = 1
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="BodyMesh" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.9, 0)
+mesh = SubResource("CapsuleMesh_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_suit")
+
+[node name="HelmetMesh" type="MeshInstance3D" parent="."]
+position = Vector3(0, 2, 0)
+mesh = SubResource("SphereMesh_helmet")
+surface_material_override/0 = SubResource("StandardMaterial3D_helmet")
+
+[node name="VisorMesh" type="MeshInstance3D" parent="."]
+position = Vector3(0, 2, -0.24)
+mesh = SubResource("BoxMesh_visor")
+surface_material_override/0 = SubResource("StandardMaterial3D_visor")
+
+[node name="CameraRig" type="Camera3D" parent="."]
+position = Vector3(0, 1.7, 0)
+fov = 75.0
+
+[node name="FusionServerReplicator" type="FusionServerReplicator" parent="."]
+owner_mode = 1
+root_replication_mode = 1

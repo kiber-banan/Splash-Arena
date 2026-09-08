@@ -1,0 +1,44 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_menu"]
+
+[node name="MainMenu" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Center" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="Center/VBox"]
+theme_override_font_sizes/font_size = 64
+text = "SPLASH ARENA"
+horizontal_alignment = 1
+
+[node name="SubLabel" type="Label" parent="Center/VBox"]
+theme_override_font_sizes/font_size = 20
+text = "подводный шутер • Godot + Photon Fusion"
+horizontal_alignment = 1
+
+[node name="PlayButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 56)
+theme_override_font_sizes/font_size = 28
+text = "Играть"
+
+[node name="StatusLabel" type="Label" parent="Center/VBox"]
+unique_name_in_owner = true
+theme_override_font_sizes/font_size = 16
+text = "..."
+horizontal_alignment = 1

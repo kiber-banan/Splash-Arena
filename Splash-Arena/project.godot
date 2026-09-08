@@ -28,5 +28,6 @@ window/size/viewport_height=720
 [fusion]
 
 connection/app_id="5c47ffdf-4bc3-4c23-95cf-5a0d40536f49"
+connection/app_version="1.0.0"
 connection/default_region="eu"
 simulation/mode=1
