@@ -20,3 +20,44 @@ offset_right = 760.0
 offset_bottom = 150.0
 theme_override_font_sizes/font_size = 15
 text = "HUD: ожидание..."
+
+[node name="RoomInfo" type="Label" parent="."]
+unique_name_in_owner = true
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -360.0
+offset_top = 10.0
+offset_right = -12.0
+offset_bottom = 82.0
+grow_horizontal = 0
+grow_vertical = 1
+theme_override_font_sizes/font_size = 17
+text = "Комната: —"
+horizontal_alignment = 2
+
+[node name="PlayerList" type="Label" parent="."]
+unique_name_in_owner = true
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -360.0
+offset_top = 86.0
+offset_right = -12.0
+offset_bottom = 290.0
+grow_horizontal = 0
+grow_vertical = 1
+theme_override_font_sizes/font_size = 16
+text = "Игроки: —"
+horizontal_alignment = 2
+
+[node name="HintLabel" type="Label" parent="."]
+unique_name_in_owner = true
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -38.0
+offset_right = 760.0
+offset_bottom = -12.0
+grow_horizontal = 1
+grow_vertical = 0
+theme_override_font_sizes/font_size = 15
+text = "WASD — плыть, Space/Ctrl — вверх/вниз, ESC — выйти в меню"

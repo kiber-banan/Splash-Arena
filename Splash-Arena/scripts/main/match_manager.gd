@@ -1,3 +1,4 @@
+class_name MatchManager
 extends Node3D
 ## Менеджер матча: подключение к Photon, вход в комнату,
 ## спавн игроков по схеме Client-Server (сервер = master client).
@@ -10,29 +11,69 @@ extends Node3D
 ##  - Позже можно собрать отдельный выделенный сервер (headless) —
 ##    код спавна не поменяется.
 ##
+## Обычно в комнату нас заводит меню (main_menu.gd): тогда MatchManager
+## находит готовое соединение и сразу спавнится. Если запустить main.tscn
+## напрямую (F5), он подключится сам — быстрым входом.
+##
 ## Цепочка, которую надо видеть в логе (Output) при запуске:
-##   MatchManager: есть App ID
-##   MatchManager: подключаюсь к Photon...
-##   MatchManager: подключился, pid=...
-##   MatchManager: вошёл в комнату, master=..., pid=...
+##   MatchManager: App ID на месте, подключаюсь к Photon...
+##   MatchManager: подключился к Photon, pid=...
+##   MatchManager: вошёл в комнату, мастер=..., pid=...
 ##   MatchManager: спавн игрока для pid=..., input_authority выдан
 ##   Player: локальный игрок готов (...)
 ## Если лог обрывается — обрыв ровно в этом месте (см. HUD-лейбл).
 
 const PlayerScene := preload("res://scenes/player/player.tscn")
+const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
+const GROUP := "match_manager"
 
 @onready var spawner: FusionSpawner = $FusionSpawner
 
 var _spawned_for: Dictionary = {}  # player_id -> Player
+var _roster: Dictionary = {}       # player_id -> {"nick": String, "char": int}
+var _leaving := false
 
 
 func _ready() -> void:
+	add_to_group(GROUP)
 	Fusion.room_joined.connect(_on_room_joined)
+	Fusion.room_left.connect(_on_room_left)
+	Fusion.player_joined.connect(_on_player_joined)
 	Fusion.player_left.connect(_on_player_left)
 	Fusion.connection_failed.connect(_on_connection_failed)
 	Fusion.register_broadcast_receiver(self)
 	spawner.add_spawnable_scene(PlayerScene)
 
+	if Fusion.is_in_room():
+		# Меню уже завело нас в комнату — спавнимся сразу.
+		_on_room_joined.call_deferred()
+	elif Fusion.is_connected_to_photon():
+		_join_room.call_deferred()
+	else:
+		# Прямой запуск main.tscn (минуя меню).
+		_connect_to_photon.call_deferred()
+
+
+func _exit_tree() -> void:
+	# Обязательно отписываемся: иначе у Fusion останется висячая ссылка и краш (см. доку RPC).
+	if Fusion:
+		Fusion.unregister_broadcast_receiver(self)
+		_disconnect(Fusion.room_joined, _on_room_joined)
+		_disconnect(Fusion.room_left, _on_room_left)
+		_disconnect(Fusion.player_joined, _on_player_joined)
+		_disconnect(Fusion.player_left, _on_player_left)
+		_disconnect(Fusion.connection_failed, _on_connection_failed)
+		_disconnect(Fusion.connected_to_photon, _on_connected)
+
+
+func _disconnect(sig: Signal, callable: Callable) -> void:
+	if sig.is_connected(callable):
+		sig.disconnect(callable)
+
+
+# ---------- подключение ----------
+
+func _connect_to_photon() -> void:
 	var app_id := AppConfig.get_app_id()
 	if app_id.is_empty():
 		# Запасной путь: App ID вбит прямо в Project Settings.
@@ -42,38 +83,37 @@ func _ready() -> void:
 		return
 	Fusion.set_app_id(app_id)
 	print("MatchManager: App ID на месте, подключаюсь к Photon...")
-
-	# Подключаемся к Photon Cloud; затем создаём/входим в комнату.
 	Fusion.connected_to_photon.connect(_on_connected)
-	Fusion.connect_to_photon.call_deferred("user_%d" % randi())
+	Fusion.connect_to_photon.call_deferred(Session.make_user_id())
 
 
-func _exit_tree() -> void:
-	# Обязательно отписываемся: иначе у Fusion останется висячая ссылка и краш (см. доку RPC).
-	if Fusion:
-		Fusion.unregister_broadcast_receiver(self)
-		if Fusion.room_joined.is_connected(_on_room_joined):
-			Fusion.room_joined.disconnect(_on_room_joined)
-		if Fusion.player_left.is_connected(_on_player_left):
-			Fusion.player_left.disconnect(_on_player_left)
-		if Fusion.connection_failed.is_connected(_on_connection_failed):
-			Fusion.connection_failed.disconnect(_on_connection_failed)
-		if Fusion.connected_to_photon.is_connected(_on_connected):
-			Fusion.connected_to_photon.disconnect(_on_connected)
+func _join_room() -> void:
+	var options := FusionRoomOptions.new()
+	options.max_players = Session.MAX_PLAYERS
+	options.is_visible = true
+	options.is_open = true
+	Fusion.join_or_create_room(Session.room_name_for_code(Session.QUICK_ROOM), options)
 
 
 func _on_connected() -> void:
 	print("MatchManager: подключился к Photon, pid=%d" % Fusion.get_local_player_id())
-	Fusion.join_or_create_room()
+	_join_room()
 
 
 func _on_connection_failed(error: String) -> void:
 	push_error("MatchManager: не удалось подключиться к Photon: %s" % error)
+	Session.last_notice = "Ошибка подключения: %s" % error
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().change_scene_to_file(MENU_SCENE)
 
+
+# ---------- комната ----------
 
 func _on_room_joined() -> void:
 	print("MatchManager: вошёл в комнату, мастер=%s, pid=%d"
 		% [str(Fusion.is_master_client()), Fusion.get_local_player_id()])
+	_roster.clear()
+	_announce_self()
 	if Fusion.is_master_client():
 		# Хост (сервер) спавнит собственного игрока.
 		_spawn_player(Fusion.get_local_player_id())
@@ -85,20 +125,81 @@ func _on_room_joined() -> void:
 		_retry_spawn_request.call_deferred()
 
 
+func _on_room_left() -> void:
+	_roster.clear()
+	if _leaving:
+		return
+	# Выкинуло не по нашей воле (разрыв, кик) — возвращаемся в меню.
+	Session.last_notice = "Соединение с комнатой потеряно."
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().change_scene_to_file(MENU_SCENE)
+
+
+func leave_to_menu() -> void:
+	## Выход из комнаты обратно в меню (ESC в HUD).
+	if _leaving:
+		return
+	_leaving = true
+	Session.last_notice = "Ты вышел из комнаты."
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if Fusion.is_in_room():
+		Fusion.leave_room()
+	get_tree().change_scene_to_file(MENU_SCENE)
+
+
 func _retry_spawn_request() -> void:
 	# Один повтор с паузой — дешевле, чем молча стоять без персонажа.
 	await get_tree().create_timer(1.0).timeout
 	if not is_instance_valid(self) or not Fusion.is_in_room():
 		return
-	if _has_local_player():
+	if get_tree().get_first_node_in_group(Player.GROUP_LOCAL_PLAYER) != null:
 		return
 	print("MatchManager: повторяю запрос спавна")
 	Fusion.rpc(request_spawn)
 
 
-func _has_local_player() -> bool:
-	return get_tree().get_first_node_in_group(Player.GROUP_LOCAL_PLAYER) != null
+# ---------- список игроков (ники) ----------
+#
+# Никнеймы не реплицируются сами, поэтому каждый пир при входе в комнату
+# рассылает broadcast-RPC со своим ником. Когда в комнату заходит кто-то
+# новый, все уже сидящие пере-анонсируют себя, чтобы новичок получил
+# полный список (RPC, отправленные до его входа, он не увидит).
 
+@rpc("any_peer", "call_local")
+func announce_player(player_id: int, nick: String, character_id: int) -> void:
+	_roster[player_id] = {"nick": nick, "char": character_id}
+
+
+func _announce_self() -> void:
+	Fusion.rpc(announce_player, Fusion.get_local_player_id(), Session.nickname, Session.character_id)
+
+
+func _on_player_joined(_player_id: int, _user_id: String) -> void:
+	if Fusion.is_in_room():
+		_announce_self()
+
+
+func get_player_count() -> int:
+	return maxi(_roster.size(), 1)
+
+
+func get_roster_text() -> String:
+	var lines := PackedStringArray()
+	var local_id := Fusion.get_local_player_id()
+	for pid in _roster.keys():
+		var entry: Dictionary = _roster[pid]
+		var nick := str(entry.get("nick", "???"))
+		if pid == local_id:
+			nick += " (ты)"
+		if Fusion.is_master_client() and pid == local_id:
+			nick += " [хост]"
+		lines.append("• " + nick)
+	if lines.is_empty():
+		lines.append("• " + Session.nickname + " (ты)")
+	return lines.join("\n")
+
+
+# ---------- спавн ----------
 
 @rpc("any_peer", "call_local")
 func request_spawn() -> void:
@@ -123,6 +224,7 @@ func claim_local_player(player: Node) -> void:
 
 
 func _on_player_left(player_id: int, is_inactive: bool) -> void:
+	_roster.erase(player_id)
 	if is_inactive:
 		# Пир в пределах player_ttl и может переподключиться — персонажа пока оставляем.
 		return

@@ -168,11 +168,17 @@ _, _, _, u = menu
 def unode(x):
     if x not in u: fail(f"main_menu.tscn: нет узла {x}")
     return u.get(x, {})
-pb = unode("MainMenu/Center/VBox/PlayButton")
-sl = unode("MainMenu/Center/VBox/StatusLabel")
-for nm, nd in (("PlayButton", pb), ("StatusLabel", sl)):
-    if nd.get("unique_name_in_owner") != "true":
-        fail(f"main_menu.tscn: {nm} без unique_name_in_owner")
+MENU_UNIQUE = {
+    "StatusLabel": "MainMenu/Center/VBox/StatusLabel",
+    "NickEdit": "MainMenu/Center/VBox/NickRow/NickEdit",
+    "CodeEdit": "MainMenu/Center/VBox/CodeRow/CodeEdit",
+    "CreateButton": "MainMenu/Center/VBox/CreateButton",
+    "JoinButton": "MainMenu/Center/VBox/CodeRow/JoinButton",
+    "QuickButton": "MainMenu/Center/VBox/QuickButton",
+}
+for nm, path in MENU_UNIQUE.items():
+    if unode(path).get("unique_name_in_owner") != "true":
+        fail(f"main_menu.tscn: {nm} ({path}) без unique_name_in_owner")
 
 hud_in_main = mnode("Main/HUD")
 if 'ExtResource("5_hud")' not in hud_in_main.get("_attrs", {}).get("instance", ""):
@@ -184,8 +190,9 @@ if "hud.gd" not in script_of(hext, hroot):
     fail("hud.tscn: у корня HUD нет скрипта hud.gd")
 if hroot.get("mouse_filter") != "3":
     fail("hud.tscn: корень HUD должен быть mouse_filter=3 (IGNORE), иначе мышь не дойдёт до игрока")
-if h.get("HUD/DebugLabel", {}).get("unique_name_in_owner") != "true":
-    fail("hud.tscn: DebugLabel без unique_name_in_owner")
+for nm in ("DebugLabel", "RoomInfo", "PlayerList", "HintLabel"):
+    if h.get("HUD/" + nm, {}).get("unique_name_in_owner") != "true":
+        fail(f"hud.tscn: {nm} без unique_name_in_owner")
 
 # ---------- 3. Скрипты: пути, узлы, санити ----------
 GD = {
@@ -196,6 +203,7 @@ GD = {
     "scripts/world/underwater_light.gd": ("scenes/main/main.tscn", "Main/UnderwaterLight", mexp),
     "scripts/world/arena.gd": ("scenes/main/main.tscn", "Main/Arena", mexp),
     "autoload/app_config.gd": (None, None, None),
+    "autoload/session.gd": (None, None, None),
     "autoload/inputs.gd": (None, None, None),
 }
 

@@ -19,7 +19,7 @@ grow_vertical = 2
 
 [node name="VBox" type="VBoxContainer" parent="Center"]
 alignment = 1
-theme_override_constants/separation = 12
+theme_override_constants/separation = 14
 
 [node name="TitleLabel" type="Label" parent="Center/VBox"]
 theme_override_font_sizes/font_size = 64
@@ -31,14 +31,56 @@ theme_override_font_sizes/font_size = 20
 text = "подводный шутер • Godot + Photon Fusion"
 horizontal_alignment = 1
 
-[node name="PlayButton" type="Button" parent="Center/VBox"]
+[node name="NickRow" type="HBoxContainer" parent="Center/VBox"]
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="NickLabel" type="Label" parent="Center/VBox/NickRow"]
+custom_minimum_size = Vector2(96, 36)
+theme_override_font_sizes/font_size = 20
+text = "Ник:"
+vertical_alignment = 1
+
+[node name="NickEdit" type="LineEdit" parent="Center/VBox/NickRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 56)
-theme_override_font_sizes/font_size = 28
-text = "Играть"
+custom_minimum_size = Vector2(260, 40)
+theme_override_font_sizes/font_size = 20
+text = "Дайвер"
+max_length = 16
+
+[node name="CreateButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 56)
+theme_override_font_sizes/font_size = 26
+text = "Создать комнату"
+
+[node name="CodeRow" type="HBoxContainer" parent="Center/VBox"]
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="CodeEdit" type="LineEdit" parent="Center/VBox/CodeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 48)
+theme_override_font_sizes/font_size = 22
+placeholder_text = "КОД"
+max_length = 8
+
+[node name="JoinButton" type="Button" parent="Center/VBox/CodeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 48)
+theme_override_font_sizes/font_size = 20
+text = "Войти по коду"
+
+[node name="QuickButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 48)
+theme_override_font_sizes/font_size = 20
+text = "Быстрый вход"
 
 [node name="StatusLabel" type="Label" parent="Center/VBox"]
 unique_name_in_owner = true
-theme_override_font_sizes/font_size = 16
+custom_minimum_size = Vector2(520, 72)
+theme_override_font_sizes/font_size = 17
 text = "..."
 horizontal_alignment = 1
+autowrap_mode = 2

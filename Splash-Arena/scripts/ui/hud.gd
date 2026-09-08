@@ -6,15 +6,19 @@ extends Control
 ## камера не крутится»: по строкам видно, где именно оборвалась цепочка
 ## photon -> room_joined -> spawn -> set_input_authority -> setup_local_player.
 ##
-## Шаги 3-4 добавляют сюда прицел, полосу HP и кулдаун способности.
+## Шаг 2 — код комнаты, счёт игроков, список ников, выход по ESC.
+##
+## Шаги 3-4 добавляют прицел, полосу HP и кулдаун способности.
 ##
 ## ВАЖНО: корень HUD имеет mouse_filter = IGNORE, иначе Control-узел
 ## перехватит движение мыши и _unhandled_input у игрока не сработает
 ## (классический «камера не крутится»).
 
-const REFRESH_SEC := 0.2  # как часто обновляем отладочный текст
+const REFRESH_SEC := 0.2  # как часто обновляем тексты
 
 @onready var debug_label: Label = %DebugLabel
+@onready var room_info: Label = %RoomInfo
+@onready var player_list: Label = %PlayerList
 
 var _refresh_left := 0.0
 
@@ -25,6 +29,17 @@ func _process(delta: float) -> void:
 		return
 	_refresh_left = REFRESH_SEC
 	debug_label.text = _build_debug_text()
+	room_info.text = _build_room_text()
+	var mm := _match_manager()
+	player_list.text = mm.get_roster_text() if mm != null else ""
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		var mm := _match_manager()
+		if mm != null:
+			get_viewport().set_input_as_handled()
+			mm.leave_to_menu()
 
 
 static func _yes(b: bool) -> String:
@@ -33,6 +48,21 @@ static func _yes(b: bool) -> String:
 
 func _local_player() -> Player:
 	return get_tree().get_first_node_in_group(Player.GROUP_LOCAL_PLAYER) as Player
+
+
+func _match_manager() -> MatchManager:
+	return get_tree().get_first_node_in_group(MatchManager.GROUP) as MatchManager
+
+
+func _build_room_text() -> String:
+	var code := Session.room_code
+	if code.is_empty():
+		code = "быстрый вход"
+	var mm := _match_manager()
+	var count := 1
+	if mm != null:
+		count = mm.get_player_count()
+	return "Комната: %s\nИгроки: %d / %d\nТы: %s" % [code, count, Session.MAX_PLAYERS, Session.nickname]
 
 
 func _build_debug_text() -> String:
