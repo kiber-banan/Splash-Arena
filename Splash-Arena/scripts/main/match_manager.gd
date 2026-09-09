@@ -35,10 +35,19 @@ const GROUP := "match_manager"
 const OWNER_RPC_REPEATS := [0.35, 1.2, 2.5]
 ## Сколько раз клиент просит хост о спавне, если ответа нет.
 const SPAWN_REQUEST_ATTEMPTS := 4
+## Когда хост повторно выдаёт input authority (сек). По образцу рабочего
+## проекта назначение после spawn() тоже работает, но иногда применяется
+## не сразу — переспрашиваем, пока get_input_authority() не совпадёт.
+const AUTHORITY_RETRY_SEC := [0.1, 0.6, 1.8]
+## Как часто клиент проверяет, есть ли у его аватара input authority.
+const AUTHORITY_CHECK_SEC := 2.0
+const AUTHORITY_CHECK_ATTEMPTS := 6
 
 @onready var spawner: FusionSpawner = $FusionSpawner
 
 var _spawned_for: Dictionary = {}  # player_id -> Player
+var _authority_check_left := AUTHORITY_CHECK_SEC
+var _authority_checks_left := AUTHORITY_CHECK_ATTEMPTS
 var _roster: Dictionary = {}       # player_id -> {"nick": String, "char": int}
 var _leaving := false
 
@@ -57,6 +66,7 @@ func _ready() -> void:
 	# Диагностика: видно, доходят ли аватары до клиента и кому они отданы.
 	if not spawner.spawned.is_connected(_on_spawned):
 		spawner.spawned.connect(_on_spawned)
+	_debug_spawn_signature()
 
 	if Fusion.is_in_room():
 		# Меню уже завело нас в комнату — спавнимся сразу.
@@ -219,6 +229,62 @@ func get_roster_text() -> String:
 	return "\n".join(lines)
 
 
+func _process(delta: float) -> void:
+	## Клиент следит, что у его аватара есть input authority. Если нет —
+	## просит хост выдать её заново (и камеру тоже): так цепочка чинится
+	## сама, даже если первое назначение потерялось.
+	if _authority_checks_left <= 0 or not Fusion.is_in_room() or Fusion.is_master_client():
+		return
+	_authority_check_left -= delta
+	if _authority_check_left > 0.0:
+		return
+	_authority_check_left = AUTHORITY_CHECK_SEC
+	_authority_checks_left -= 1
+	var me := _local_player()
+	if me != null and me.replicator != null and me.replicator.has_input_authority():
+		_authority_checks_left = 0
+		return
+	print("MatchManager: у моего аватара нет input authority — прошу хост (pid=%d)"
+		% Fusion.get_local_player_id())
+	Fusion.rpc(request_input_authority, Fusion.get_local_player_id())
+
+
+@rpc("any_peer", "call_local")
+func request_input_authority(player_id: int) -> void:
+	## Клиент просит хост (пере)выдать input authority и заново объявить
+	## владельца. Хост находит аватар по get_input_authority(), а если тот
+	## ещё не совпал — по последнему заспавненному под этот pid.
+	if not Fusion.is_master_client():
+		return
+	var pl := _find_player_by_owner(player_id)
+	if pl == null and _spawned_for.has(player_id):
+		pl = _spawned_for[player_id]
+	if pl == null:
+		return
+	_assign_input_authority(pl, player_id)
+	_announce_owner(pl, player_id)
+	Fusion.rpc(assign_owner, player_id)
+	print("MatchManager: перевыдал input authority pid=%d (сейчас %d)"
+		% [player_id, pl.replicator.get_input_authority() if pl.replicator != null else -1])
+
+
+func _local_player() -> Player:
+	return get_tree().get_first_node_in_group(Player.GROUP_LOCAL_PLAYER) as Player
+
+
+func _debug_spawn_signature() -> void:
+	## Печатаем реальную подпись spawn() — по ней видно, принимает ли
+	## SDK pre_spawn_function.
+	for m in spawner.get_method_list():
+		if String(m.get("name", "")) != "spawn":
+			continue
+		var args := PackedStringArray()
+		for a in m.get("args", []):
+			args.append("%s:%s" % [a.get("name", "?"), a.get("type", "?")])
+		print("MatchManager: FusionSpawner.spawn(%s)" % ", ".join(args))
+		return
+
+
 func _on_spawned(node: Node) -> void:
 	## Срабатывает на всех пирах — и у того, кто спавнил, и у остальных.
 	var pl := node as Player
@@ -278,20 +344,40 @@ func _spawn_with_input_authority(scene: PackedScene, player_id: int) -> Node:
 	## передают pre_spawn_function. Если назначить после спавна (как раньше),
 	## has_input_authority() остаётся false и у хоста, и у клиента: аватар
 	## никуда не плывёт, а камера не привязывается к своему игроку.
+	var player: Node = null
 	if _spawn_has_pre_spawn_param():
 		var player_id_copy := player_id
 		var pre_spawn := func(node: Node) -> void:
 			_assign_input_authority(node, player_id_copy)
-		var spawned := spawner.spawn(scene, pre_spawn)
-		if spawned != null:
-			_check_input_authority(spawned, player_id)
-			return spawned
-		push_warning("MatchManager: spawn(scene, pre_spawn_function) не сработал — спавню как раньше")
-	# Запасной путь (старые версии SDK): назначаем сразу после спавна.
-	var fallback := spawner.spawn(scene)
-	_assign_input_authority(fallback, player_id)
-	_check_input_authority(fallback, player_id)
-	return fallback
+		player = spawner.spawn(scene, pre_spawn)
+		if player == null:
+			push_warning("MatchManager: spawn(scene, pre_spawn_function) не принял колбэк — спавню как раньше")
+	if player == null:
+		# Обычный путь (так же делает рабочий проект-образец).
+		player = spawner.spawn(scene)
+	# Назначаем и ДО (pre_spawn), и ПОСЛЕ спавна: в разных версиях SDK
+	# срабатывает то или другое. Повторное назначение безвредно.
+	_assign_input_authority(player, player_id)
+	_check_input_authority(player, player_id)
+	# Иногда назначение применяется не в этот же кадр — дожимаем повторами.
+	if player != null:
+		_ensure_input_authority_delayed_loop(player, player_id)
+	return player
+
+
+func _ensure_input_authority_delayed_loop(player: Node, player_id: int) -> void:
+	for wait in AUTHORITY_RETRY_SEC:
+		await get_tree().create_timer(wait).timeout
+		if not is_instance_valid(self) or not is_instance_valid(player):
+			return
+		if not Fusion.is_master_client():
+			return
+		var rep := player.get_node_or_null("FusionServerReplicator") as FusionServerReplicator
+		if rep != null and rep.get_input_authority() == player_id:
+			return
+		_assign_input_authority(player, player_id)
+		print("MatchManager: повторно выдаю input authority pid=%d (сейчас %d)"
+			% [player_id, rep.get_input_authority() if rep != null else -1])
 
 
 static func _check_input_authority(node: Node, player_id: int) -> void:

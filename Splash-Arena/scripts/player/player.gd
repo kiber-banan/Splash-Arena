@@ -222,9 +222,13 @@ func _physics_process(delta: float) -> void:
 		replicator.has_input_authority()
 		or replicator.get_input_authority() == Fusion.get_local_player_id()
 	)
-	if _is_local_player and has_input_authority:
+	# Сам ввод собираем всегда, как только аватар стал локальным: если
+	# input authority по какой-то причине не выдана, игрок всё равно
+	# плывёт локально (в HUD это помечается «ЛОКАЛЬНАЯ СИМУЛЯЦИЯ»).
+	if _is_local_player:
 		_last_input = _create_input()
-		replicator.queue_input(delta, _last_input)
+		if has_input_authority:
+			replicator.queue_input(delta, _last_input)
 	# process_input_queue(delta) вызывает on_process_input:
 	#  - на сервере   -> авторитетное исполнение
 	#  - на клиенте   -> предсказание (и повтор при коррекции)
@@ -582,6 +586,7 @@ static func _set_enum_by_label(node: Object, prop: String, wanted: Array) -> voi
 			continue
 		var hint := String(d.get("hint_string", ""))
 		var index := _match_enum_index(hint, wanted)
+		print("Player: %s = %d (варианты: %s)" % [prop, index, hint])
 		if index < 0:
 			push_error("Player: не нашёл %s среди значений '%s' (hint: '%s'). Выставь режим вручную в инспекторе." % [wanted, prop, hint])
 			return
