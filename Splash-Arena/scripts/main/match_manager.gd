@@ -198,7 +198,7 @@ func get_roster_text() -> String:
 		lines.append("• " + nick)
 	if lines.is_empty():
 		lines.append("• " + Session.nickname + " — " + Characters.name_for(Session.character_id) + " (ты)")
-	return lines.join("\n")
+	return "\n".join(lines)
 
 
 # ---------- спавн ----------

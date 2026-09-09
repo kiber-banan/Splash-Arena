@@ -346,6 +346,11 @@ for rel, (scene, base, nodes) in GD.items():
         for uq in set(re.findall(r'%([A-Za-z_]\w*)', code)):
             if not any(n.get("unique_name_in_owner") == "true" and k.rsplit("/",1)[-1] == uq for k, n in nodes.items()):
                 fail(f"{rel}: %{uq} не найден в {scene}")
+    # PackedStringArray не имеет join() в Godot 4 — только String.join(parts)
+    for psname in re.findall(r"var\s+(\w+)\s*(?::=\s*|:\s*PackedStringArray\s*=\s*)PackedStringArray\(\)", src):
+        for n, line in enumerate(code.splitlines(), 1):
+            if re.search(r"\b" + psname + r"\.join\(", line):
+                fail(f"{rel}:{n}: PackedStringArray не имеет join() — пиши \"\\n\".join({psname})")
     # вызовы неизвестных глобальных функций (обычно = опечатка в имени)
     known = BUILTIN_FUNCS | PROJECT_FUNCS | KEYWORDS | KNOWN_METHODS
     for n, line in enumerate(code.splitlines(), 1):

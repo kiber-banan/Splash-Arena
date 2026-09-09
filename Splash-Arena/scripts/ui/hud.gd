@@ -182,7 +182,7 @@ func _build_debug_text() -> String:
 	var me := _local_player()
 	if me == null:
 		lines.append("Спавн:  НЕТ локального игрока")
-		return lines.join("\n")
+		return "\n".join(lines)
 
 	var rep := me.replicator
 	lines.append(
@@ -209,4 +209,4 @@ func _build_debug_text() -> String:
 			queue,
 			queue_dt
 		])
-	return lines.join("\n")
+	return "\n".join(lines)
