@@ -100,8 +100,14 @@ Fusion Client-Server запрещает клиенту создавать сет
 схема одна и та же и для своего аватара, и для чужого:
 
 1. Клиент: `Fusion.rpc(request_spawn, Session.character_id)` — просит хост.
-2. Хост: `spawner.spawn(...)` + `replicator.set_input_authority(pid)`.
-3. Хост: `Fusion.rpc(assign_owner, pid)` — сообщает всем, чей это аватар.
+2. Хост: `spawner.spawn(scene, pre_spawn_function)` — **input authority
+   выдаётся внутри `pre_spawn_function`, до `_ready()` сцены**. Это не
+   прихоть: назначение после спавна Fusion молча игнорирует, и тогда
+   `has_input_authority()` = `false` даже у хоста (аватар не плывёт, камера
+   не привязывается).
+3. Хост: `Fusion.rpc(player.set_owner_player, pid)` — object-RPC: доезжает
+   до этого же аватара на всех пирах и на машине владельца включает камеру.
+   Плюс broadcast `assign_owner(pid)` как запасной путь.
 
 `_spawn_player()` начинается с проверки `Fusion.is_master_client()`: если спавн
 пытается сделать не хост — это ошибка, она пишется в лог и ничего не спавнится.
@@ -113,9 +119,14 @@ Fusion Client-Server запрещает клиенту создавать сет
 независимых пути, все идемпотентны:
 
 1. хост зовёт `setup_local_player()` сразу после спавна (свой аватар);
-2. `assign_owner(pid)` — каждый пир сам находит аватар в группе `players` по
-   `get_input_authority()` и включает камеру владельцу;
-3. само-детект `_try_setup_local()` в `_physics_process`.
+2. object-RPC `set_owner_player(pid)` — основной путь для клиента;
+3. само-детект `_try_setup_local()` по `has_input_authority()` /
+   `get_input_authority()` — работает, когда authority выдана до `_ready()`.
+
+> Осторожно: broadcast-RPC «чей это аватар» приходит **всем** пирам, поэтому
+> обрабатывать его должен только тот, чей `Fusion.get_local_player_id()`
+> совпал. Иначе хост (у которого в дереве все аватары) включит камеру на
+> чужом персонаже — и будет смотреть не своими глазами.
 
 ### Управление: ощущение воды
 
@@ -333,7 +344,8 @@ addons/fusion/             # ⛔ НЕ в git — ставится вручную
 |---|---|---|
 | `Сеть: Fusion/Photon/комната/мастер` | все `да` | нет App ID или Photon недоступен — чини `config/secret.cfg` |
 | `Спавн: НЕТ локального игрока` | `есть` | не сработал `room_joined` → спавн (см. лог `MatchManager:`) |
-| `input=нет` (input authority) | `да` | мастер не выдал `set_input_authority` — проверь `owner_mode = PLAYER_PREDICTED` |
+| `input=нет` (input authority) | `да` | authority выдана после спавна, а не в `pre_spawn_function` — см. логи `input authority не выдана` |
+| `authority_pid=0` | твой pid | `set_input_authority` не сработал: проверь `owner_mode = PLAYER_PREDICTED` и лог спавна |
 | `Ввод: отправлено=N исполнено=M` | `M ≈ N` | `M=0` — не приходит `on_process_input`; `M≪N` — потери/пересимуляция |
 | `‼ ЛОКАЛЬНАЯ СИМУЛЯЦИЯ` | нет | Fusion не исполняет ввод — аватар двигается локально, чини цепочку ввода |
 

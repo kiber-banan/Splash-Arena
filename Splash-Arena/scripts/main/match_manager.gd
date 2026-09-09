@@ -11,6 +11,10 @@ extends Node3D
 ##  - Позже можно собрать отдельный выделенный сервер (headless) —
 ##    код спавна не поменяется.
 ##
+## СПАВН (дока Photon, Prediction and Input): input authority выдаётся
+## ТОЛЬКО через pre_spawn_function в spawner.spawn() — до _ready() сцены.
+## Назначение после спавна молча не работает: has_input_authority() = false.
+##
 ## Обычно в main.tscn нас приводит ЛОББИ (scenes/ui/lobby.tscn) — после
 ## того как все игроки набрались и нажали «Принять»: MatchManager находит
 ## уже готовое соединение и спавнит всех. Если запустить main.tscn
@@ -28,7 +32,7 @@ const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 const GROUP := "match_manager"
 ## Повторы RPC «чей это аватар» (сек): на клиенте объект появляется по
 ## сети позже, чем долетает RPC.
-const OWNER_RPC_REPEATS := [0.35, 1.2]
+const OWNER_RPC_REPEATS := [0.35, 1.2, 2.5]
 ## Сколько раз клиент просит хост о спавне, если ответа нет.
 const SPAWN_REQUEST_ATTEMPTS := 4
 
@@ -50,6 +54,9 @@ func _ready() -> void:
 	# ВАЖНО: все клиенты регистрируют сцены в одном и том же порядке.
 	for i in Characters.COUNT:
 		spawner.add_spawnable_scene(Characters.scene_for(i))
+	# Диагностика: видно, доходят ли аватары до клиента и кому они отданы.
+	if not spawner.spawned.is_connected(_on_spawned):
+		spawner.spawned.connect(_on_spawned)
 
 	if Fusion.is_in_room():
 		# Меню уже завело нас в комнату — спавнимся сразу.
@@ -71,6 +78,8 @@ func _exit_tree() -> void:
 		_disconnect(Fusion.player_left, _on_player_left)
 		_disconnect(Fusion.connection_failed, _on_connection_failed)
 		_disconnect(Fusion.connected_to_photon, _on_connected)
+	if is_instance_valid(spawner) and spawner.spawned.is_connected(_on_spawned):
+		spawner.spawned.disconnect(_on_spawned)
 
 
 func _disconnect(sig: Signal, callable: Callable) -> void:
@@ -157,6 +166,8 @@ func _retry_spawn_request() -> void:
 	# поэтому «запрос улетел в никуда» — частая причина пустого мира.
 	# Повтор безопасен: на хосте стоит защита от двойного спавна.
 	for attempt in SPAWN_REQUEST_ATTEMPTS:
+		if attempt == 2:
+			_debug_dump_avatars()
 		await get_tree().create_timer(1.5).timeout
 		if not is_instance_valid(self) or not Fusion.is_in_room():
 			return
@@ -208,6 +219,38 @@ func get_roster_text() -> String:
 	return "\n".join(lines)
 
 
+func _on_spawned(node: Node) -> void:
+	## Срабатывает на всех пирах — и у того, кто спавнил, и у остальных.
+	var pl := node as Player
+	if pl == null or not is_instance_valid(pl.replicator):
+		return
+	print(
+		"MatchManager: аватар в дереве (мой pid=%d, input_authority=%d, has_input=%s, has_state=%s)"
+		% [
+			Fusion.get_local_player_id(),
+			pl.replicator.get_input_authority(),
+			str(pl.replicator.has_input_authority()),
+			str(pl.replicator.has_authority()),
+		]
+	)
+
+
+func _debug_dump_avatars() -> void:
+	## Если через 6 с у клиента нет локального игрока — печатаем, что есть
+	## в дереве и кому принадлежат аватары. Быстрее, чем гадать по логу.
+	if get_tree().get_first_node_in_group(Player.GROUP_LOCAL_PLAYER) != null:
+		return
+	print("MatchManager: ВНИМАНИЕ — локального игрока нет. Аватары в дереве:")
+	for node in get_tree().get_nodes_in_group(Player.GROUP_ALL):
+		var pl := node as Player
+		if pl == null:
+			continue
+		print(
+			"  • %s: input_authority=%d, мой pid=%d, имя=%s"
+			% [pl.name, pl.replicator.get_input_authority(), Fusion.get_local_player_id(), pl.character_name]
+		)
+
+
 # ---------- спавн ----------
 
 @rpc("any_peer", "call_local")
@@ -229,11 +272,85 @@ func _on_player_left(player_id: int, is_inactive: bool) -> void:
 		_spawned_for.erase(player_id)
 
 
+func _spawn_with_input_authority(scene: PackedScene, player_id: int) -> Node:
+	## ВАЖНО (дока Fusion, раздел Prediction and Input): input authority
+	## надо назначать ДО _ready() заспавненной сцены — для этого в spawn()
+	## передают pre_spawn_function. Если назначить после спавна (как раньше),
+	## has_input_authority() остаётся false и у хоста, и у клиента: аватар
+	## никуда не плывёт, а камера не привязывается к своему игроку.
+	if _spawn_has_pre_spawn_param():
+		var player_id_copy := player_id
+		var pre_spawn := func(node: Node) -> void:
+			_assign_input_authority(node, player_id_copy)
+		var spawned := spawner.spawn(scene, pre_spawn)
+		if spawned != null:
+			_check_input_authority(spawned, player_id)
+			return spawned
+		push_warning("MatchManager: spawn(scene, pre_spawn_function) не сработал — спавню как раньше")
+	# Запасной путь (старые версии SDK): назначаем сразу после спавна.
+	var fallback := spawner.spawn(scene)
+	_assign_input_authority(fallback, player_id)
+	_check_input_authority(fallback, player_id)
+	return fallback
+
+
+static func _check_input_authority(node: Node, player_id: int) -> void:
+	## Проверяем, что input authority реально выдана. Если нет — в логе
+	## будет видно причину (и has_input_authority() останется false).
+	if node == null or not is_instance_valid(node):
+		return
+	var rep := node.get_node_or_null("FusionServerReplicator") as FusionServerReplicator
+	if rep == null:
+		return
+	if rep.get_input_authority() != player_id:
+		push_warning(
+			"MatchManager: input authority не выдана (нужно pid=%d, сейчас %d). "
+			% [player_id, rep.get_input_authority()]
+			+ "Проверь owner_mode = PLAYER_PREDICTED у FusionServerReplicator."
+		)
+
+
+static func _assign_input_authority(node: Node, player_id: int) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	var rep := node.get_node_or_null("FusionServerReplicator") as FusionServerReplicator
+	if rep != null:
+		rep.set_input_authority(player_id)
+
+
+func _spawn_has_pre_spawn_param() -> bool:
+	## Подпись spawn() в разных версиях SDK отличается, поэтому смотрим,
+	## есть ли у метода параметр pre_spawn_function.
+	for m in spawner.get_method_list():
+		if String(m.get("name", "")) != "spawn":
+			continue
+		for a in m.get("args", []):
+			if "pre_spawn" in String(a.get("name", "")):
+				return true
+	return false
+
+
+func _announce_owner(player: Player, player_id: int) -> void:
+	Fusion.rpc(player.set_owner_player, player_id)
+	for wait in OWNER_RPC_REPEATS:
+		_announce_owner_delayed(player, player_id, wait)
+
+
+func _announce_owner_delayed(player: Player, player_id: int, wait: float) -> void:
+	await get_tree().create_timer(wait).timeout
+	if not is_instance_valid(self) or not is_instance_valid(player):
+		return
+	Fusion.rpc(player.set_owner_player, player_id)
+
+
 @rpc("any_peer", "call_local")
 func assign_owner(player_id: int) -> void:
-	## Хост сообщает ВСЕМ, какой аватар чей. Каждый пир сам находит узел
-	## в группе Player.GROUP_ALL по get_input_authority() — так надёжнее,
-	## чем object-RPC: не зависит от того, успел ли объект дойти по сети.
+	## Хост сообщает всем, какой аватар чей. Каждый пир сам находит узел
+	## в группе Player.GROUP_ALL по get_input_authority().
+	## ВАЖНО: действуем только если это НАШ pid — иначе хост (у которого
+	## в дереве все аватары) включит камеру на чужом персонаже.
+	if player_id != Fusion.get_local_player_id():
+		return
 	if _assign_local(player_id):
 		return
 	# Узел на клиенте может появиться чуть позже RPC — пробуем ещё.
@@ -276,19 +393,23 @@ func _spawn_player(player_id: int, character_id: int) -> void:
 	if _spawned_for.has(player_id):
 		return
 	var scene := Characters.scene_for(character_id)
-	var player := spawner.spawn(scene) as Player
+	var player := _spawn_with_input_authority(scene, player_id) as Player
 	if player == null:
 		push_error("MatchManager: спавнер вернул не Player.")
 		return
 	player.position = Player.random_spawn_position(get_tree())
-	var rep := player.get_node("FusionServerReplicator") as FusionServerReplicator
-	rep.set_input_authority(player_id)
 	_spawned_for[player_id] = player
-	print("MatchManager: спавн игрока для pid=%d — %s (input_authority выдан)"
-		% [player_id, Characters.name_for(player.character_id)])
+	print("MatchManager: спавн игрока для pid=%d — %s (input_authority=%d)"
+		% [
+			player_id,
+			Characters.name_for(player.character_id),
+			player.replicator.get_input_authority(),
+		])
 
-	# Сообщаем всем, чей это аватар: на машине владельца это включает
-	# камеру и захват мыши (повторяем — объект мог дойти по сети позже).
+	# object-RPC: на машине владельца включает камеру и захват мыши.
+	# Повторяем — объект мог появиться на клиенте позже, чем долетит RPC.
+	_announce_owner(player, player_id)
+	# И broadcast на тот случай, если object-RPC не дойдёт.
 	Fusion.rpc(assign_owner, player_id)
 
 	# Свой аватар (этот пир и есть хост) настраиваем сразу локально.

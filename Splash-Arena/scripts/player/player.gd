@@ -11,10 +11,14 @@ extends CharacterBody3D
 ## ЛОКАЛЬНЫЙ ИГРОК (камера + захват мыши + ввод) включается тремя путями,
 ## все идемпотентны и срабатывают хоть один, хоть все сразу:
 ##  1. хост вызывает setup_local_player() сразу после спавна (свой аватар);
-##  2. broadcast-RPC MatchManager.assign_owner(pid): каждый пир сам находит
-##     аватар по get_input_authority() и включает камеру владельцу;
-##  3. само-детект _try_setup_local() в _physics_process — если сервер
-##     уже выдал input authority, включаемся и без всяких RPC.
+##  2. object-RPC set_owner_player(pid) — доезжает до этого же аватара на
+##     всех пирах, на машине владельца включает камеру (основной путь);
+##  3. само-детект _try_setup_local() в _ready/_physics_process по
+##     has_input_authority() — работает, если authority выдана до _ready().
+##
+## ВАЖНО: input authority хост выдаёт через pre_spawn_function (см.
+## MatchManager._spawn_with_input_authority). Назначение ПОСЛЕ спавна Fusion
+## молча игнорирует — тогда has_input_authority() = false даже у хоста.
 ##
 ## ДВИЖЕНИЕ: вода. Скорость не ставится мгновенно — есть разгон и
 ## инерция: velocity плавно тянется к целевой (MOVE_ACCEL), а когда ввода
@@ -141,15 +145,27 @@ func setup_local_player() -> void:
 	_disable_preview_cameras()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	print(
-		"Player: локальный игрок готов (pid=%d, input_authority=%s, state_authority=%s, owner_mode=%d, root_replication_mode=%d)"
+		"Player: локальный игрок готов (pid=%d, input_authority=%s, state_authority=%s, authority_pid=%d, owner_mode=%d, root_replication_mode=%d)"
 		% [
 			Fusion.get_local_player_id(),
 			str(replicator.has_input_authority()),
 			str(replicator.has_authority()),
+			replicator.get_input_authority(),
 			int(replicator.owner_mode),
 			int(replicator.root_replication_mode),
 		]
 	)
+
+
+@rpc("any_peer", "call_local")
+func set_owner_player(player_id: int) -> void:
+	## Object-RPC: выполняется на ЭТОМ ЖЕ аватаре на всех пирах (Fusion
+	## маршрутизирует вызов через репликатор). На машине владельца это
+	## включает камеру и захват мыши — не надеясь на has_input_authority().
+	_owner_player_id = player_id
+	debug_owner_pid = player_id
+	if player_id == Fusion.get_local_player_id():
+		setup_local_player()
 
 
 func is_local_player() -> bool:
