@@ -20,7 +20,10 @@ extends CharacterBody3D
 ## MatchManager._spawn_with_input_authority). Назначение ПОСЛЕ спавна Fusion
 ## молча игнорирует — тогда has_input_authority() = false даже у хоста.
 ##
-## ДВИЖЕНИЕ: вода. Скорость не ставится мгновенно — есть разгон и
+## ДВИЖЕНИЕ: как у дайвера — плывём туда, куда смотрим (все 3 оси).
+## Направление считается из yaw/pitch: опустил прицел — плывёшь вниз,
+## поднял — всплываешь. Space / Ctrl добавляют чистую вертикаль поверх
+## взгляда. Скорость не ставится мгновенно — есть разгон и
 ## инерция: velocity плавно тянется к целевой (MOVE_ACCEL), а когда ввода
 ## нет — вода гасит скорость (MOVE_DRAG). Формула exp(-rate * delta)
 ## одинакова на сервере и в предсказании при любом delta.
@@ -38,9 +41,11 @@ const LOOK_SENS := 0.003       # чувствительность мыши
 const PITCH_LIMIT := 1.35      # ~77°, предел наклона камеры
 const EYE_HEIGHT := 1.7        # высота глаз — откуда смотрит камера и бьёт гарпун
 
-const VERT_SPEED := 4.5        # м/с, вертикаль (всплытие/погружение)
-const MOVE_ACCEL := 9.0        # разгон в воде (1/с)
-const MOVE_DRAG := 3.5         # как вода гасит скорость без ввода (1/с)
+const VERT_SPEED := 2.4        # м/с, вертикаль Space/Ctrl (вдобавок к взгляду)
+const MOVE_ACCEL := 4.5        # разгон в воде (1/с) — вода тяжёлая, разгоняемся не сразу
+const MOVE_DRAG := 1.4         # как вода гасит скорость без ввода (1/с) — инерция долгая
+const BOB_SPEED := 1.3         # частота «дыхания» на месте
+const BOB_AMPLITUDE := 0.22    # м/с, покачивание дайвера, когда он стоит
 const PREDICTION_DEAD_MS := 400  # если ввод не исполнялся дольше — включаем локальную симуляцию
 
 const WEAPON_DAMAGE := 25      # урон гарпуна
@@ -70,6 +75,7 @@ const CHARACTER_SCOUT := 2
 const GROUP_LOCAL_PLAYER := "local_player"
 const GROUP_ALL := "players"            # все аватары в мире (и чужие тоже)
 const GROUP_PREVIEW_CAMERA := "preview_camera"
+const GROUP_MATCH_MANAGER := "match_manager"
 const GROUP_EFFECTS := "effects"
 const GROUP_SPAWN_POINTS := "spawn_points"
 
@@ -79,7 +85,7 @@ const GROUP_SPAWN_POINTS := "spawn_points"
 @export var character_id := CHARACTER_ASSAULT
 @export var character_name := "Штурмовик"
 @export var max_hp := 100
-@export var move_speed := 6.0            # м/с, горизонталь
+@export var move_speed := 3.2            # м/с, вода — плывём неспеша
 @export var suit_color := Color(1.0, 0.45, 0.12, 1.0)
 @export var ability_name := "Рывок"
 @export var ability_cooldown := 5.0      # сек, кулдаун способности
@@ -108,6 +114,7 @@ var _fire_cooldown := 0.0
 var _ability_cooldown_left := 0.0
 var _ability_time_left := 0.0
 var _owner_player_id := 0
+var _bob_time := 0.0
 var _last_input := PackedByteArray()
 var _last_input_exec_ms := 0
 
@@ -294,12 +301,15 @@ func _on_fusion_input(_tick: int, delta_time: float, payload: PackedByteArray, i
 	if payload.size() < INPUT_SIZE:
 		return
 	_last_input_exec_ms = Time.get_ticks_msec()
-	_apply_input(payload, delta_time)
-	_update_weapon(delta_time, payload.decode_u8(24), is_new)
+	_apply_input(payload, delta_time, is_new)
 
 
-func _apply_input(payload: PackedByteArray, delta: float) -> void:
-	## Одна и та же логика на сервере, в предсказании и в локальной симуляции.
+func _apply_input(payload: PackedByteArray, delta: float, is_new: bool = true) -> void:
+	## Одна и та же логика на сервере, в предсказании и в локальной
+	## симуляции: взгляд, выстрел, способность и движение. ВАЖНО: оружие
+	## обязано жить здесь, а не только в process_input — иначе при
+	## локальной симуляции (когда сетевой ввод не исполняется) выстрела
+	## не будет вовсе.
 	var input_x := payload.decode_float(0)   # +1 = D (вправо)
 	var input_y := payload.decode_float(4)   # -1 = W (вперёд), +1 = S (назад)
 	var vertical := payload.decode_float(8)  # +1 = вверх (Space)
@@ -315,11 +325,17 @@ func _apply_input(payload: PackedByteArray, delta: float) -> void:
 	rotation.y = yaw
 	camera_rig.rotation.x = pitch
 
-	_update_ability(delta, payload.decode_u8(24))
+	var buttons := payload.decode_u8(24)
+	_update_ability(delta, buttons)
+	_update_weapon(delta, buttons, is_new)
 
-	var body_basis := global_transform.basis
-	var forward := -input_y  # +1 = вперёд по взгляду
-	var direction := -body_basis.z * forward + body_basis.x * input_x
+	# ДАЙВЕР: плывём туда, куда смотрим. Направление взгляда считаем из
+	# yaw/pitch (ровно как у камеры), поэтому «нос чуть вниз» = плывём
+	# вперёд и вниз, «нос вверх» = всплываем. Это и есть движение по 3 осям.
+	var aim := get_aim_direction()                       # куда смотрим (с вертикалью)
+	var right := Vector3.RIGHT.rotated(Vector3.UP, _yaw)  # вправо — всегда горизонтально
+	var forward_input := -input_y                        # +1 = W (вперёд по взгляду)
+	var direction := aim * forward_input + right * input_x
 	if direction.length() > 1.0:
 		direction = direction.normalized()
 	_swim(direction, vertical, delta)
@@ -328,7 +344,14 @@ func _apply_input(payload: PackedByteArray, delta: float) -> void:
 func _swim(direction: Vector3, vertical: float, delta: float) -> void:
 	## Вода: плавный разгон по вводу и инерция, когда ввода нет.
 	var desired := direction * get_current_speed()
-	desired.y = vertical * VERT_SPEED
+	# Space / Ctrl — долавливаем вертикаль поверх направления взгляда.
+	desired.y += vertical * VERT_SPEED
+	# «Дыхание» дайвера на месте: лёгкое покачивание вверх-вниз. Считаем от
+	# накопленного времени ввода, а не от TIME — так симуляция одинаковая
+	# на сервере и в предсказании клиента.
+	_bob_time += delta
+	var idle := 1.0 - clampf(direction.length(), 0.0, 1.0)
+	desired.y += sin(_bob_time * BOB_SPEED) * BOB_AMPLITUDE * idle
 	var has_input := direction.length_squared() > 0.001 or absf(vertical) > 0.001
 	var rate := MOVE_ACCEL if has_input else MOVE_DRAG
 	# exp() — чтобы результат не зависел от величины delta (tick у сервера
@@ -351,9 +374,6 @@ func get_fire_cooldown_ratio() -> float:
 
 
 func _shoot(is_new: bool) -> void:
-	if not replicator.has_authority():
-		# Клиент в предсказании: крутим кулдаун, но урон считает сервер.
-		return
 	var from := get_eye_position()
 	var to := from + get_aim_direction() * WEAPON_RANGE
 
@@ -363,6 +383,23 @@ func _shoot(is_new: bool) -> void:
 		Fusion.rpc(show_shot, from, to)  # остальные пиры (call_remote)
 		_spawn_tracer(from, to, true)    # себе — сразу, без RTT
 
+	if replicator.has_authority():
+		_apply_shot(from, to)
+		return
+	# Клиент в предсказании: урон считает сервер из того же ввода.
+	if replicator.has_input_authority():
+		return
+	# ЗАПАСНОЙ ПУТЬ. Input authority не выдана — наш ввод до сервера не
+	# доедет, поэтому просим сервер разобрать выстрел по присланным
+	# точкам. Как только input authority заработает, сюда не попадаем.
+	var mm := get_tree().get_first_node_in_group(GROUP_MATCH_MANAGER)
+	if mm != null and mm.has_method("request_shot"):
+		Fusion.rpc(mm.request_shot, _owner_player_id, from, to)
+
+
+func _apply_shot(from: Vector3, to: Vector3) -> void:
+	## Разбор попадания. Выполняется там, где есть авторитет (сервер)
+	## или по просьбе клиента (см. request_shot в MatchManager).
 	var world := get_world_3d()
 	if world == null:
 		return
@@ -381,7 +418,7 @@ func _shoot(is_new: bool) -> void:
 		return
 	Fusion.rpc(victim.take_damage, WEAPON_DAMAGE)
 	# Хит-маркер нужен стрелку, а не жертве — шлём его машине стрелка.
-	var shooter_id := replicator.get_input_authority()
+	var shooter_id := _owner_player_id if _owner_player_id > 0 else replicator.get_input_authority()
 	if shooter_id > 0:
 		var hud := get_tree().get_first_node_in_group("hud")
 		if hud != null and hud.has_method("notify_hit_confirmed"):
@@ -594,6 +631,25 @@ static func _set_enum_by_label(node: Object, prop: String, wanted: Array) -> voi
 			node.set(prop, index)
 		return
 	push_error("Player: у FusionServerReplicator нет свойства '%s'. Совпадает ли версия Fusion SDK?" % prop)
+
+
+static func enum_variants(node: Object, prop: String) -> Array:
+	## Все значения enum-свойства: [{"label": String, "value": int}].
+	## Нужно, чтобы не гадать по числу: в разных сборках SDK порядок
+	## значений owner_mode может отличаться.
+	var out: Array = []
+	for d in node.get_property_list():
+		if String(d.get("name", "")) != prop:
+			continue
+		var parts := String(d.get("hint_string", "")).split(",", false)
+		for i in parts.size():
+			var chunks := parts[i].strip_edges().split(":", true, 1)
+			var value := i
+			if chunks.size() > 1:
+				value = int(chunks[1])
+			out.append({"label": chunks[0], "value": value})
+		return out
+	return out
 
 
 static func _match_enum_index(hint: String, wanted: Array) -> int:

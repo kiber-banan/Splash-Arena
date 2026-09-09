@@ -7,6 +7,8 @@ extends StaticBody3D
 ## но физика обязана совпадать, иначе сервер и клиенты разъедутся).
 
 const LAYOUT_SEED := 424242
+## Каустика на дне: свет с поверхности, собранный волнами.
+const CAUSTICS_SHADER := preload("res://shaders/water/caustics.gdshader")
 
 @export var _box_material: Material
 
@@ -27,12 +29,12 @@ func build_arena() -> void:
 	var mat := _box_material
 	if mat == null:
 		var fallback := StandardMaterial3D.new()
-		fallback.albedo_color = Color(0.25, 0.28, 0.33)
+		fallback.albedo_color = Color(0.36, 0.43, 0.5)
 		fallback.roughness = 0.9
 		mat = fallback
 
-	# Дно (песок/камень): непрозрачное снизу, сверху тонкий слой песка.
-	_add_box(Vector3(size * 2.0, 1.0, size * 2.0), _arena_center + Vector3(0, -8.5, 0), mat)
+	# Дно: песок с бегающими бликами каустики.
+	_add_box(Vector3(size * 2.0, 1.0, size * 2.0), _arena_center + Vector3(0, -8.5, 0), _make_sand_material())
 
 	# Стены-скалы по периметру: не дают уплыть за арену.
 	for i in 4:
@@ -56,6 +58,18 @@ func build_arena() -> void:
 	for i in 5:
 		var rnd_pos := Vector3(rng.randf_range(-10.0, 10.0), 0.0, rng.randf_range(-10.0, 10.0))
 		_add_box(Vector3(2.0 + rng.randf(), 9.0, 2.0 + rng.randf()), _arena_center + rnd_pos + Vector3(0, 0.5, 0), mat)
+
+
+static func _make_sand_material() -> Material:
+	## Песок + каустика. Если шейдер не соберётся — просто светлый песок.
+	var sm := ShaderMaterial.new()
+	sm.shader = CAUSTICS_SHADER
+	if sm.shader != null:
+		return sm
+	var fallback := StandardMaterial3D.new()
+	fallback.albedo_color = Color(0.42, 0.45, 0.40)
+	fallback.roughness = 0.95
+	return fallback
 
 
 func _add_box(box_size: Vector3, position: Vector3, material: Material) -> void:

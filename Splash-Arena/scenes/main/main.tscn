@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/match_manager.gd" id="1_match"]
 [ext_resource type="Script" path="res://scripts/world/arena.gd" id="2_arena"]
@@ -8,22 +8,50 @@
 
 [sub_resource type="Environment" id="Environment_uw"]
 background_mode = 1
-background_color = Color(0.015, 0.09, 0.12, 1)
+background_color = Color(0.03, 0.17, 0.23, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.25, 0.45, 0.5, 1)
-ambient_light_energy = 0.7
+ambient_light_color = Color(0.32, 0.6, 0.66, 1)
+ambient_light_energy = 1.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rock"]
-albedo_color = Color(0.25, 0.28, 0.33, 1)
+albedo_color = Color(0.36, 0.43, 0.5, 1)
 roughness = 0.9
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_water"]
-size = Vector2(32, 32)
-subdivide_width = 64
-subdivide_depth = 64
+size = Vector2(120, 120)
+subdivide_width = 96
+subdivide_depth = 96
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
 shader = ExtResource("4_water")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_motes"]
+emission_shape = 2
+emission_box_extents = Vector3(30, 8, 30)
+direction = Vector3(0, 1, 0)
+spread = 30.0
+gravity = Vector3(0, 0.05, 0)
+initial_velocity_min = 0.02
+initial_velocity_max = 0.18
+scale_min = 0.4
+scale_max = 1.3
+damping_min = 0.2
+damping_max = 0.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mote"]
+albedo_color = Color(0.75, 0.95, 1, 0.45)
+emission_enabled = true
+emission = Color(0.4, 0.8, 1, 1)
+emission_energy_multiplier = 1.6
+transparency = 1
+shading_mode = 3
+
+[sub_resource type="SphereMesh" id="SphereMesh_mote"]
+radius = 0.022
+height = 0.044
+radial_segments = 5
+rings = 3
+material = SubResource("StandardMaterial3D_mote")
 
 [node name="Main" type="Node3D"]
 
@@ -80,3 +108,13 @@ spawn_path = NodePath("../Players")
 [node name="Players" type="Node3D" parent="MatchManager"]
 
 [node name="HUD" parent="." instance=ExtResource("5_hud")]
+
+[node name="Motes" type="GPUParticles3D" parent="."]
+position = Vector3(0, -1, 0)
+amount = 500
+lifetime = 14.0
+preprocess = 8.0
+emitting = true
+visibility_aabb = AABB(-40, -14, -40, 80, 34, 80)
+process_material = SubResource("ParticleProcessMaterial_motes")
+draw_pass_1 = SubResource("SphereMesh_mote")

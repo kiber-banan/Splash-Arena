@@ -191,6 +191,16 @@ func _build_room_text() -> String:
 	return "\n".join(lines)
 
 
+func _owner_mode_variants_text(rep: FusionServerReplicator) -> String:
+	## Список всех значений owner_mode с числами — чтобы не гадать, какое
+	## из них PLAYER_PREDICTED в конкретной сборке SDK.
+	var parts := PackedStringArray()
+	for variant in Player.enum_variants(rep, "owner_mode"):
+		parts.append("%s=%d" % [(variant as Dictionary).get("label", "?"),
+			int((variant as Dictionary).get("value", -1))])
+	return ", ".join(parts) if parts.size() > 0 else "нет"
+
+
 func _build_debug_text() -> String:
 	var lines := PackedStringArray()
 	lines.append(
@@ -206,8 +216,14 @@ func _build_debug_text() -> String:
 		% [Fusion.get_local_player_id(), _yes(Input.mouse_mode == Input.MOUSE_MODE_CAPTURED)])
 
 	var me := _local_player()
+	lines.append("Аватары: %d в дереве" % get_tree().get_nodes_in_group(Player.GROUP_ALL).size())
 	if me == null:
 		lines.append("Спавн:  НЕТ локального игрока")
+		for node in get_tree().get_nodes_in_group(Player.GROUP_ALL):
+			var other := node as Player
+			if other != null and other.replicator != null:
+				lines.append("  • %s owner=%d authority=%d"
+					% [other.name, other.debug_owner_pid, other.replicator.get_input_authority()])
 		return "\n".join(lines)
 
 	var rep := me.replicator
@@ -222,6 +238,7 @@ func _build_debug_text() -> String:
 	)
 	lines.append("Репликатор: owner_mode=%d  root_replication_mode=%d"
 		% [int(rep.owner_mode), int(rep.root_replication_mode)])
+	lines.append("owner_mode варианты: %s" % _owner_mode_variants_text(rep))
 
 	var queue := "-"
 	var queue_dt := "-"

@@ -63,6 +63,7 @@ func _ready() -> void:
 	# ВАЖНО: все клиенты регистрируют сцены в одном и том же порядке.
 	for i in Characters.COUNT:
 		spawner.add_spawnable_scene(Characters.scene_for(i))
+	add_to_group(Player.GROUP_MATCH_MANAGER)
 	# Диагностика: видно, доходят ли аватары до клиента и кому они отданы.
 	if not spawner.spawned.is_connected(_on_spawned):
 		spawner.spawned.connect(_on_spawned)
@@ -268,6 +269,22 @@ func request_input_authority(player_id: int) -> void:
 		% [player_id, pl.replicator.get_input_authority() if pl.replicator != null else -1])
 
 
+@rpc("any_peer", "call_local")
+func request_shot(shooter_id: int, from: Vector3, to: Vector3) -> void:
+	## ЗАПАСНОЙ ПУТЬ для выстрела: если input authority не выдана, ввод
+	## клиента до сервера не доходит, и клиент просит сервер разобрать
+	## попадание по присланным точкам. Как только input authority
+	## заработает, это не вызывается.
+	if not Fusion.is_master_client() or not Fusion.is_in_room():
+		return
+	var shooter := _find_player_by_owner(shooter_id)
+	if shooter == null and _spawned_for.has(shooter_id):
+		shooter = _spawned_for[shooter_id]
+	if shooter == null:
+		return
+	shooter._apply_shot(from, to)
+
+
 func _local_player() -> Player:
 	return get_tree().get_first_node_in_group(Player.GROUP_LOCAL_PLAYER) as Player
 
@@ -378,6 +395,38 @@ func _ensure_input_authority_delayed_loop(player: Node, player_id: int) -> void:
 		_assign_input_authority(player, player_id)
 		print("MatchManager: повторно выдаю input authority pid=%d (сейчас %d)"
 			% [player_id, rep.get_input_authority() if rep != null else -1])
+	# Повторы не помогли — перебираем режимы owner_mode с «PREDICT» в названии:
+	# если в этой сборке SDK PLAYER_PREDICTED имеет не то числовое значение,
+	# найдём рабочее и честно напишем его в лог.
+	_try_other_owner_modes(player, player_id)
+
+
+func _try_other_owner_modes(player: Node, player_id: int) -> void:
+	if not Fusion.is_master_client() or not is_instance_valid(player):
+		return
+	var rep := player.get_node_or_null("FusionServerReplicator") as FusionServerReplicator
+	if rep == null:
+		return
+	if rep.get_input_authority() == player_id:
+		return
+	var current := int(rep.get("owner_mode"))
+	var variants := Player.enum_variants(rep, "owner_mode")
+	print("MatchManager: ВНИМАНИЕ — input authority не выдана. Перебираю owner_mode (сейчас %d): %s"
+		% [current, str(variants)])
+	for variant in variants:
+		var label := String((variant as Dictionary).get("label", ""))
+		if "PREDICT" not in label.to_upper():
+			continue
+		var value := int((variant as Dictionary).get("value", -1))
+		if value < 0 or value == current:
+			continue
+		rep.set("owner_mode", value)
+		rep.set_input_authority(player_id)
+		print("MatchManager: owner_mode=%d (%s) → authority=%d"
+			% [value, label, rep.get_input_authority()])
+		if rep.get_input_authority() == player_id:
+			print("MatchManager: подошёл owner_mode=%d (%s) — input authority выдана" % [value, label])
+			return
 
 
 static func _check_input_authority(node: Node, player_id: int) -> void:

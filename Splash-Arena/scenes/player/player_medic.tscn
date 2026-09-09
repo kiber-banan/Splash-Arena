@@ -5,7 +5,7 @@
 [node name="Player" instance=ExtResource("1_base")]
 character_id = 1
 character_name = "Медик"
-move_speed = 6.0
+move_speed = 3.2
 max_hp = 80
 suit_color = Color(0.2, 0.85, 0.45, 1)
 ability_name = "Лечение"
