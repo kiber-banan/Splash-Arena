@@ -17,6 +17,11 @@ const SEARCH_STEP_SEC := 3.0    # как часто повторяем попы�
 const FOUND_DELAY_SEC := 0.6    # пауза перед загрузкой арены (показать «найдено»)
 const MAX_JOIN_FAILURES := 6    # после стольких ошибок входа останавливаем поиск
 
+## «Хаб» — комната с известным именем. Страховка на случай, если случайный
+## вход (join_room с пустым именем) не подхватывает чужие комнаты: тогда
+## первый игрок создаёт хаб, второй в него заходит по имени.
+const HUB_ROOM := "MATCH"
+
 const COLOR_INFO := Color(0.80, 0.92, 1.0)
 const COLOR_ERROR := Color(1.0, 0.55, 0.45)
 const COLOR_OK := Color(0.45, 0.95, 0.62)
@@ -130,15 +135,24 @@ func _step_matchmaking() -> void:
 		return
 	_attempts += 1
 	var options := Session.make_room_options()
-	if _attempts % 2 == 1:
-		# 1) ищем ЛЮБУЮ свободную комнату (Photon выберет сам)
-		Fusion.join_room("", options)
-		search_status.text = "Ищем свободный матч... (попытка %d)" % _attempts
-	else:
-		# 2) свободных нет — создаём свою, чтобы в неё зашли другие
-		Session.room_code = Session.random_code()
-		Fusion.create_room(Session.room_name_for_code(Session.room_code), options)
-		search_status.text = "Свободных матчей нет — создаю свой %s" % Session.room_code
+	match _attempts:
+		1, 3:
+			# Ищем ЛЮБУЮ свободную комнату — Photon выберет сам.
+			Fusion.join_room("", options)
+			search_status.text = "Ищем свободный матч... (попытка %d)" % _attempts
+		2:
+			# Хаб: если кто-то уже создал — зайдём, нет — создадим сами.
+			# Это и есть страховка от «два инстанса не видят друг друга».
+			Fusion.join_or_create_room(Session.room_name_for_code(HUB_ROOM), options)
+			search_status.text = "Подключаюсь к общему матчу... (попытка %d)" % _attempts
+		_:
+			# Свободных нет и хаб занят — создаём свою комнату со случайным
+			# кодом, чтобы в неё зашли следующие.
+			Session.room_code = Session.random_code()
+			Fusion.create_room(Session.room_name_for_code(Session.room_code), options)
+			search_status.text = "Свободных матчей нет — создаю свой %s (попытка %d)" % [
+				Session.room_code, _attempts
+			]
 	_set_status(search_status.text, COLOR_INFO)
 
 
