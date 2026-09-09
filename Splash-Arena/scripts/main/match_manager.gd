@@ -89,11 +89,9 @@ func _connect_to_photon() -> void:
 
 
 func _join_room() -> void:
-	var options := FusionRoomOptions.new()
-	options.max_players = Session.MAX_PLAYERS
-	options.is_visible = true
-	options.is_open = true
-	Fusion.join_or_create_room(Session.room_name_for_code(Session.QUICK_ROOM), options)
+	## Прямой запуск main.tscn (минуя меню): тот же матчмейкинг, что и в меню —
+	## сначала пытаемся войти в любую свободную комнату, иначе создаём свою.
+	Fusion.join_room("", Session.make_room_options())
 
 
 func _on_connected() -> void:

@@ -2,23 +2,29 @@ extends Node
 ## Данные сессии: что меню передаёт в матч. Автолоад — потому что эти
 ## значения должны пережить смену сцены (меню -> арена -> меню).
 ##
-## Здесь же живут правила генерации кодов комнат и формат имён комнат
-## Photon: все наши комнаты называются SA_<КОД>.
+## МАТЧМЕЙКИНГ (вместо ручных кодов комнат):
+##   игрок жмёт «Найти матч» → меню пытается войти в любую свободную
+##   комнату (Photon сам выбирает: join_room с пустым именем), а если
+##   свободных нет — создаёт свою, чтобы в неё зашли следующие.
+##
+##   MATCH_SIZE — сколько игроков в матче. Сейчас 2 (тест 1 на 1).
+##   Когда будешь готов — поставь 4 или 8: больше ничего менять не нужно,
+##   Photon просто перестанет подсаживать игроков в заполненные комнаты.
 
 const NICK_DEFAULT := "Дайвер"
 const NICK_MAX := 16
 const CODE_LENGTH := 5
 const ROOM_PREFIX := "SA"
 const QUICK_ROOM := "QUICK"
-const MAX_PLAYERS := 8  # FusionRoomOptions.max_players
-# Алфавит без похожих символов: нет O/0 и I/1 — код проще диктовать.
+## Сколько игроков в матче. 2 = тест 1 на 1. Потом поставь 4 / 8 / 16.
+const MATCH_SIZE := 2
+# Алфавит без похожих символов: нет O/0 и I/1.
 const CODE_ALPHABET := "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 var nickname: String = NICK_DEFAULT
 var character_id: int = 0
-var join_mode: String = "quick"   # "create" | "join" | "quick"
-var room_code: String = ""        # код для показа игроку (пусто = быстрый вход)
-var last_notice: String = ""      # что показать в меню после выхода из комнаты
+var room_code: String = ""        # код комнаты, если мы её создали (просто для показа)
+var last_notice: String = ""      # что показать в меню после выхода из матча
 
 
 func _ready() -> void:
@@ -33,10 +39,6 @@ static func sanitize_nick(raw: String) -> String:
 	return s.substr(0, NICK_MAX)
 
 
-static func normalize_code(raw: String) -> String:
-	return raw.strip_edges().to_upper()
-
-
 static func random_code(length: int = CODE_LENGTH) -> String:
 	var s := ""
 	for _i in length:
@@ -46,6 +48,18 @@ static func random_code(length: int = CODE_LENGTH) -> String:
 
 static func room_name_for_code(code: String) -> String:
 	return "%s_%s" % [ROOM_PREFIX, code]
+
+
+func make_room_options() -> FusionRoomOptions:
+	## Опции матча. max_players = MATCH_SIZE — Photon не подсадит
+	## в заполненную комнату, поэтому случайный вход = честный 1 на 1.
+	var options := FusionRoomOptions.new()
+	options.max_players = MATCH_SIZE
+	options.is_visible = true   # комнату видно в случайном поиске
+	options.is_open = true
+	# Пустая комната живёт минуту: успеют найти те, кто искал параллельно.
+	options.empty_room_ttl_ms = 60000
+	return options
 
 
 func make_user_id() -> String:

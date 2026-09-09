@@ -1,39 +1,64 @@
 extends Control
-## Стартовое меню: ник, создание комнаты с кодом, вход по коду, быстрый вход.
+## Главное меню: матчмейкинг, выбор класса, профиль.
 ##
-## Меню само подключается к Photon и заходит в комнату — так ошибки
-## соединения видно сразу в статусе, а не в пустом логе. main.tscn
-## (MatchManager) потом подхватывает уже готовое соединение.
+## МАТЧМЕЙКИНГ (без ручных кодов комнат):
+##   1. «Найти матч» → подключаемся к Photon (если ещё не подключены).
+##   2. Каждые SEARCH_STEP_SEC пробуем войти в ЛЮБУЮ свободную комнату:
+##      Fusion.join_room("") — пустое имя = случайная комната (Photon сам
+##      выберет подходящую: открытую и не заполненную).
+##   3. Если свободных нет (пришла ошибка или тишина) — создаём свою
+##      комнату со случайным кодом, чтобы в неё зашли следующие игроки.
+##   4. Как только room_joined — загружаем арену.
 ##
-## Photon-комнаты называются Session.room_name_for_code(code) = "SA_<КОД>",
-## у быстрого входа фиксированное имя SA_QUICK (join_or_create).
+## Размер матча — одна константа Session.MATCH_SIZE (сейчас 2 = тест 1 на 1).
 
 const MAIN_SCENE := "res://scenes/main/main.tscn"
+const SEARCH_STEP_SEC := 3.0    # как часто повторяем попытку найти матч
+const FOUND_DELAY_SEC := 0.6    # пауза перед загрузкой арены (показать «найдено»)
+const MAX_JOIN_FAILURES := 6    # после стольких ошибок входа останавливаем поиск
 
+const COLOR_INFO := Color(0.80, 0.92, 1.0)
+const COLOR_ERROR := Color(1.0, 0.55, 0.45)
+const COLOR_OK := Color(0.45, 0.95, 0.62)
+
+const CARD_BG := Color(0.055, 0.102, 0.145, 1)
+const CARD_BORDER := Color(0.11, 0.243, 0.318, 1)
+const CARD_ACTIVE_BG := Color(0.071, 0.243, 0.325, 1)
+const CARD_ACTIVE_BORDER := Color(0.302, 0.886, 1.0, 1)
+
+@onready var tabs: TabContainer = %Tabs
 @onready var status_label: Label = %StatusLabel
+@onready var find_button: Button = %FindButton
+@onready var search_bar: ProgressBar = %SearchBar
+@onready var search_status: Label = %SearchStatus
+@onready var cards_row: HBoxContainer = %CardsRow
+@onready var hero_info: Label = %HeroInfo
 @onready var nick_edit: LineEdit = %NickEdit
-@onready var code_edit: LineEdit = %CodeEdit
-@onready var char_select: OptionButton = %CharSelect
-@onready var char_info: Label = %CharInfo
+@onready var diag_label: Label = %DiagLabel
 
-var _pending_room := ""
-var _busy := false
+var _searching := false
+var _search_time := 0.0
+var _attempts := 0
+var _join_failures := 0
+var _cards: Array[Button] = []
 
 
 func _ready() -> void:
+	tabs.set_tab_title(0, "Играть")
+	tabs.set_tab_title(1, "Персонаж")
+	tabs.set_tab_title(2, "Профиль")
 	nick_edit.text = Session.nickname
-	_fill_characters()
-	char_select.item_selected.connect(_on_character_selected)
-	%CreateButton.pressed.connect(_on_create_pressed)
-	%JoinButton.pressed.connect(_on_join_pressed)
-	%QuickButton.pressed.connect(_on_quick_pressed)
+	_build_character_cards()
+	_select_character(Session.character_id)
+	find_button.pressed.connect(_on_find_pressed)
 	Fusion.connected_to_photon.connect(_on_connected_to_photon)
 	Fusion.room_joined.connect(_on_room_joined)
 	Fusion.connection_failed.connect(_on_connection_failed)
+	_update_diag()
 	if Session.last_notice.is_empty():
-		_set_status("Введи ник и жми «Создать комнату» или «Быстрый вход»")
+		_set_status("Готов к бою. Выбери класс и жми «Найти матч».", COLOR_INFO)
 	else:
-		_set_status(Session.last_notice)
+		_set_status(Session.last_notice, COLOR_INFO)
 		Session.last_notice = ""
 
 
@@ -47,113 +72,191 @@ func _exit_tree() -> void:
 		Fusion.connection_failed.disconnect(_on_connection_failed)
 
 
-# ---------- выбор персонажа ----------
-
-func _fill_characters() -> void:
-	for i in Characters.COUNT:
-		char_select.add_item(Characters.name_for(i), i)
-	char_select.select(Session.character_id)
-	_update_character_info(Session.character_id)
-
-
-func _on_character_selected(_index: int) -> void:
-	_update_character_info(char_select.get_selected_id())
-
-
-func _update_character_info(character_id: int) -> void:
-	char_info.text = Characters.description_for(character_id)
-
-
-# ---------- кнопки ----------
-
-func _on_create_pressed() -> void:
-	var code := Session.random_code()
-	Session.join_mode = "create"
-	Session.room_code = code
-	_enter_room(Session.room_name_for_code(code), "Создаю комнату с кодом %s..." % code)
-
-
-func _on_join_pressed() -> void:
-	var code := Session.normalize_code(code_edit.text)
-	if code.length() < 3:
-		_set_error("Введи код комнаты — минимум 3 символа")
+func _process(delta: float) -> void:
+	if not _searching:
 		return
-	Session.join_mode = "join"
-	Session.room_code = code
-	_enter_room(Session.room_name_for_code(code), "Вхожу в комнату %s..." % code)
+	# Индикатор «ищу»: полоса бегает туда-обратно.
+	search_bar.value = 100.0 * (0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.004))
+	_search_time += delta
+	if _search_time < SEARCH_STEP_SEC:
+		return
+	_search_time = 0.0
+	_step_matchmaking()
 
 
-func _on_quick_pressed() -> void:
-	Session.join_mode = "quick"
-	Session.room_code = ""
-	_enter_room(Session.room_name_for_code(Session.QUICK_ROOM), "Ищу быстрый матч...")
+# ---------- матчмейкинг ----------
 
-
-# ---------- подключение ----------
-
-func _enter_room(room_name: String, message: String) -> void:
-	if _busy:
+func _on_find_pressed() -> void:
+	if _searching:
+		_stop_search("Поиск остановлен.", COLOR_INFO)
 		return
 	Session.nickname = Session.sanitize_nick(nick_edit.text)
-	Session.character_id = char_select.get_selected_id()
-	_pending_room = room_name
-	_set_status(message)
+	_searching = true
+	_search_time = 0.0
+	_attempts = 0
+	_join_failures = 0
+	find_button.text = "ОТМЕНА"
+	search_bar.visible = true
+	search_status.text = "Ищем матч %d на %d..." % [Session.MATCH_SIZE, Session.MATCH_SIZE]
+	_set_status("Ищем матч...", COLOR_INFO)
+	if _ensure_connected():
+		_search_time = SEARCH_STEP_SEC  # первая попытка — сразу же
+
+
+func _ensure_connected() -> bool:
 	var app_id := AppConfig.get_app_id()
 	if app_id.is_empty():
 		# Запасной путь: App ID вбит прямо в Project Settings.
 		app_id = String(ProjectSettings.get_setting("fusion/connection/app_id", ""))
 	if app_id.is_empty():
-		_set_error("Нет Fusion App ID: скопируй config/secret.example.cfg -> config/secret.cfg и вставь свой App ID")
-		return
+		_stop_search("Нет Fusion App ID: скопируй config/secret.example.cfg -> config/secret.cfg и вставь свой App ID.", COLOR_ERROR)
+		return false
 	Fusion.set_app_id(app_id)
-	_busy = true
 	if Fusion.is_connected_to_photon():
-		_join_pending_room()
-	else:
-		Fusion.connect_to_photon.call_deferred(Session.make_user_id())
-
-
-func _join_pending_room() -> void:
-	var options := FusionRoomOptions.new()
-	options.max_players = Session.MAX_PLAYERS
-	options.is_visible = true
-	options.is_open = true
-	match Session.join_mode:
-		"create":
-			Fusion.create_room(_pending_room, options)
-		"join":
-			Fusion.join_room(_pending_room, options)
-		_:
-			Fusion.join_or_create_room(_pending_room, options)
+		return true
+	_set_status("Подключаюсь к Photon...", COLOR_INFO)
+	Fusion.connect_to_photon.call_deferred(Session.make_user_id())
+	return false  # продолжим в _on_connected_to_photon
 
 
 func _on_connected_to_photon() -> void:
-	_join_pending_room()
+	_update_diag()
+	if _searching:
+		_search_time = SEARCH_STEP_SEC  # попытка входа — без паузы
+
+
+func _step_matchmaking() -> void:
+	if not _searching or not Fusion.is_connected_to_photon():
+		return
+	_attempts += 1
+	var options := Session.make_room_options()
+	if _attempts % 2 == 1:
+		# 1) ищем ЛЮБУЮ свободную комнату (Photon выберет сам)
+		Fusion.join_room("", options)
+		search_status.text = "Ищем свободный матч... (попытка %d)" % _attempts
+	else:
+		# 2) свободных нет — создаём свою, чтобы в неё зашли другие
+		Session.room_code = Session.random_code()
+		Fusion.create_room(Session.room_name_for_code(Session.room_code), options)
+		search_status.text = "Свободных матчей нет — создаю свой %s" % Session.room_code
+	_set_status(search_status.text, COLOR_INFO)
 
 
 func _on_room_joined() -> void:
-	_set_status("В комнате. Загружаю арену...")
+	if not _searching:
+		return
+	_searching = false
+	find_button.text = "МАТЧ НАЙДЕН"
+	find_button.disabled = true
+	search_bar.visible = false
+	search_status.text = "Матч найден! Загружаю арену..."
+	_set_status("Матч найден! Загружаю арену...", COLOR_OK)
+	await get_tree().create_timer(FOUND_DELAY_SEC).timeout
 	get_tree().change_scene_to_file(MAIN_SCENE)
 
 
 func _on_connection_failed(error: String) -> void:
-	_busy = false
-	push_error("MainMenu: не удалось подключиться: %s" % error)
-	if Session.join_mode == "join":
-		_set_error("Не удалось войти в комнату %s: %s" % [Session.room_code, error])
-	elif Session.join_mode == "create":
-		_set_error("Не удалось создать комнату: %s" % error)
-	else:
-		_set_error("Ошибка подключения: %s" % error)
+	push_error("MainMenu: %s" % error)
+	_update_diag()
+	if not _searching:
+		_set_status("Ошибка: %s" % error, COLOR_ERROR)
+		return
+	if not Fusion.is_connected_to_photon():
+		_stop_search("Не удалось подключиться к Photon: %s" % error, COLOR_ERROR)
+		return
+	# Во время поиска ошибка «нет свободных комнат» — это нормально,
+	# следующая попытка создаст свою комнату.
+	_join_failures += 1
+	if _join_failures >= MAX_JOIN_FAILURES:
+		_stop_search("Не удалось ни найти, ни создать матч: %s" % error, COLOR_ERROR)
+		return
+	_search_time = SEARCH_STEP_SEC  # пробуем снова без паузы
 
 
-# ---------- статус ----------
+func _stop_search(message: String, color: Color) -> void:
+	_searching = false
+	find_button.text = "НАЙТИ МАТЧ"
+	find_button.disabled = false
+	search_bar.visible = false
+	search_status.text = ""
+	_set_status(message, color)
 
-func _set_status(text: String) -> void:
-	status_label.modulate = Color(0.85, 0.95, 1.0)
+
+# ---------- классы ----------
+
+func _build_character_cards() -> void:
+	for child in cards_row.get_children():
+		child.queue_free()
+	_cards.clear()
+	for i in Characters.COUNT:
+		var card := Button.new()
+		card.text = _card_text(i)
+		card.custom_minimum_size = Vector2(170, 0)
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		# Переносы задаём сами через \n (короткие строки), чтобы не зависеть
+		# от autowrap_mode — у Button его поведение между версиями отличается.
+		# Фокусная рамка вокруг карточки портит вид — убираем.
+		card.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		card.pressed.connect(_on_card_pressed.bind(i))
+		cards_row.add_child(card)
+		_cards.append(card)
+
+
+static func _card_text(character_id: int) -> String:
+	var lines := PackedStringArray()
+	lines.append(Characters.name_for(character_id).to_upper())
+	for part in Characters.description_for(character_id).split("•", false):
+		lines.append(part.strip_edges())
+	return "\n".join(lines)
+
+
+static func _card_style(active: bool) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = CARD_ACTIVE_BG if active else CARD_BG
+	sb.border_color = CARD_ACTIVE_BORDER if active else CARD_BORDER
+	sb.set_border_width_all(2 if active else 1)
+	sb.set_corner_radius_all(12)
+	sb.content_margin_left = 16
+	sb.content_margin_top = 14
+	sb.content_margin_right = 16
+	sb.content_margin_bottom = 14
+	return sb
+
+
+func _on_card_pressed(character_id: int) -> void:
+	_select_character(character_id)
+
+
+func _select_character(character_id: int) -> void:
+	Session.character_id = character_id
+	for i in _cards.size():
+		var active := i == character_id
+		_cards[i].add_theme_stylebox_override("normal", _card_style(active))
+		_cards[i].add_theme_stylebox_override("hover", _card_style(true))
+		_cards[i].add_theme_stylebox_override("pressed", _card_style(true))
+		_cards[i].add_theme_font_size_override("font_size", 18 if active else 16)
+	hero_info.text = "%s\n%s\nОружие: гарпун (урон 25, кд 0.35 с)" % [
+		Characters.name_for(character_id),
+		Characters.description_for(character_id),
+	]
+
+
+# ---------- служебное ----------
+
+func _set_status(text: String, color: Color) -> void:
+	status_label.modulate = color
 	status_label.text = text
 
 
-func _set_error(text: String) -> void:
-	status_label.modulate = Color(1.0, 0.55, 0.45)
-	status_label.text = text
+func _update_diag() -> void:
+	var app_id := AppConfig.get_app_id()
+	if app_id.is_empty():
+		app_id = String(ProjectSettings.get_setting("fusion/connection/app_id", ""))
+	var region := String(ProjectSettings.get_setting("fusion/connection/default_region", "eu")).to_upper()
+	diag_label.text = "Photon: %s\nApp ID: %s\nРегион: %s\nИгроков в матче: %d" % [
+		"подключён" if Fusion.is_connected_to_photon() else "не подключён",
+		"есть" if not app_id.is_empty() else "НЕ ЗАДАН",
+		region,
+		Session.MATCH_SIZE,
+	]

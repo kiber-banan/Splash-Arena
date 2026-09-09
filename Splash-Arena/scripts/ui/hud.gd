@@ -155,14 +155,16 @@ func _match_manager() -> MatchManager:
 
 
 func _build_room_text() -> String:
-	var code := Session.room_code
-	if code.is_empty():
-		code = "быстрый вход"
 	var mm := _match_manager()
 	var count := 1
 	if mm != null:
 		count = mm.get_player_count()
-	return "Комната: %s\nИгроки: %d / %d\nТы: %s" % [code, count, Session.MAX_PLAYERS, Session.nickname]
+	var lines := PackedStringArray()
+	lines.append("Игроки: %d / %d" % [count, Session.MATCH_SIZE])
+	lines.append("Ты: %s" % Session.nickname)
+	if not Session.room_code.is_empty():
+		lines.append("Комната: %s" % Session.room_code)
+	return "\n".join(lines)
 
 
 func _build_debug_text() -> String:

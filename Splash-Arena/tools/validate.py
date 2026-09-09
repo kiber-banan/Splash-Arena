@@ -169,18 +169,23 @@ def unode(x):
     if x not in u: fail(f"main_menu.tscn: нет узла {x}")
     return u.get(x, {})
 MENU_UNIQUE = {
-    "StatusLabel": "MainMenu/Center/VBox/StatusLabel",
-    "NickEdit": "MainMenu/Center/VBox/NickRow/NickEdit",
-    "CodeEdit": "MainMenu/Center/VBox/CodeRow/CodeEdit",
-    "CreateButton": "MainMenu/Center/VBox/CreateButton",
-    "JoinButton": "MainMenu/Center/VBox/CodeRow/JoinButton",
-    "QuickButton": "MainMenu/Center/VBox/QuickButton",
-    "CharSelect": "MainMenu/Center/VBox/CharRow/CharSelect",
-    "CharInfo": "MainMenu/Center/VBox/CharInfo",
+    "StatusLabel": "MainMenu/Root/Shell/StatusPanel/StatusMargin/StatusLabel",
+    "Tabs": "MainMenu/Root/Shell/Tabs",
+    "FindButton": "MainMenu/Root/Shell/Tabs/Play/PlayBox/FindButton",
+    "SearchBar": "MainMenu/Root/Shell/Tabs/Play/PlayBox/SearchBar",
+    "SearchStatus": "MainMenu/Root/Shell/Tabs/Play/PlayBox/SearchStatus",
+    "CardsRow": "MainMenu/Root/Shell/Tabs/Hero/HeroBox/CardsRow",
+    "HeroInfo": "MainMenu/Root/Shell/Tabs/Hero/HeroBox/HeroInfo",
+    "NickEdit": "MainMenu/Root/Shell/Tabs/Profile/ProfileBox/NickRow/NickEdit",
+    "DiagLabel": "MainMenu/Root/Shell/Tabs/Profile/ProfileBox/DiagLabel",
 }
 for nm, path in MENU_UNIQUE.items():
     if unode(path).get("unique_name_in_owner") != "true":
         fail(f"main_menu.tscn: {nm} ({path}) без unique_name_in_owner")
+# вкладки: Играть / Персонаж / Профиль
+for tab in ("Play", "Hero", "Profile"):
+    if not any(k.startswith("MainMenu/Root/Shell/Tabs/" + tab) for k in u):
+        fail(f"main_menu.tscn: нет вкладки {tab}")
 
 # ---------- 2b. Персонажи (3 сцены-наследника player.tscn) ----------
 CHARACTER_SCENES = {
