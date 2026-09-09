@@ -18,12 +18,14 @@ extends Control
 ## (классический «камера не крутится»).
 
 const REFRESH_SEC := 0.2      # как часто обновляем тексты/полосы
+const LOW_HP_RATIO := 0.35    # ниже этой доли HP полоса становится красной
 const HITMARKER_SEC := 0.2    # сколько живёт хит-маркер
 const MESSAGE_SEC := 1.4      # сколько живёт сообщение по центру
 const CROSSHAIR_ARM := 8.0
 const CROSSHAIR_GAP := 4.0
 
 @onready var debug_label: Label = %DebugLabel
+@onready var debug_panel: PanelContainer = %DebugPanel
 @onready var room_info: Label = %RoomInfo
 @onready var player_list: Label = %PlayerList
 @onready var health_bar: ProgressBar = %HealthBar
@@ -39,11 +41,18 @@ var _message_left := 0.0
 var _last_deaths := 0
 var _last_player: Player = null
 var _flash_tween: Tween = null
+var _hp_fill_ok: StyleBoxFlat = null
+var _hp_fill_low: StyleBoxFlat = null
+var _hp_is_low := false
 
 
 func _ready() -> void:
 	queue_redraw()  # рисуем прицел
 	Fusion.register_broadcast_receiver(self)
+	# Полосы HP: обычная и «критическая» (меняем только при переходе).
+	_hp_fill_ok = _make_fill(Color(0.16, 0.85, 0.52))
+	_hp_fill_low = _make_fill(Color(0.95, 0.28, 0.24))
+	health_bar.add_theme_stylebox_override("fill", _hp_fill_ok)
 
 
 func _exit_tree() -> void:
@@ -73,6 +82,10 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_debug"):
+		get_viewport().set_input_as_handled()
+		debug_panel.visible = not debug_panel.visible
+		return
 	if event.is_action_pressed("ui_cancel"):
 		var mm := _match_manager()
 		if mm != null:
@@ -134,12 +147,23 @@ func _update_vitals() -> void:
 		_last_deaths = me.deaths
 	health_bar.max_value = float(me.max_hp)
 	health_bar.value = float(me.hp)
+	var low := float(me.hp) / float(maxi(me.max_hp, 1)) < LOW_HP_RATIO
+	if low != _hp_is_low:
+		_hp_is_low = low
+		health_bar.add_theme_stylebox_override("fill", _hp_fill_low if low else _hp_fill_ok)
 	health_label.text = "HP %d / %d  •  смерти: %d" % [me.hp, me.max_hp, me.deaths]
 	ability_bar.value = me.get_ability_cooldown_ratio() * 100.0
 	ability_label.text = "%s • %s (E)" % [me.character_name, me.ability_name]
 	if me.deaths > _last_deaths:
 		show_message("ВАС УБИЛИ")
 	_last_deaths = me.deaths
+
+
+static func _make_fill(color: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = color
+	sb.set_corner_radius_all(6)
+	return sb
 
 
 static func _yes(b: bool) -> String:
@@ -188,8 +212,13 @@ func _build_debug_text() -> String:
 
 	var rep := me.replicator
 	lines.append(
-		"Спавн:  есть  input=%s  state=%s  authority_pid=%d"
-		% [_yes(rep.has_input_authority()), _yes(rep.has_authority()), rep.get_input_authority()]
+		"Спавн:  есть  input=%s  state=%s  authority_pid=%d%s"
+		% [
+			_yes(rep.has_input_authority()),
+			_yes(rep.has_authority()),
+			rep.get_input_authority(),
+			"  ‼ ЛОКАЛЬНАЯ СИМУЛЯЦИЯ" if me.debug_local_sim else "",
+		]
 	)
 	lines.append("Репликатор: owner_mode=%d  root_replication_mode=%d"
 		% [int(rep.owner_mode), int(rep.root_replication_mode)])

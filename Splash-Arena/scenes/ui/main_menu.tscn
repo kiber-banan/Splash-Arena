@@ -311,5 +311,5 @@ autowrap_mode = 3
 [node name="Footer" type="Label" parent="Root/Shell"]
 theme_override_colors/font_color = Color(0.4, 0.549, 0.647, 1)
 theme_override_font_sizes/font_size = 13
-text = "WASD — плыть • Space / Ctrl — вверх / вниз • ЛКМ — гарпун • E — способность • ESC — выход из матча"
+text = "WASD — плыть • Space / Ctrl — вверх / вниз • ЛКМ — гарпун • E — способность • F11 — фуллскрин • ESC — выход из матча"
 horizontal_alignment = 1

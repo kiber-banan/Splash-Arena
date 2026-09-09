@@ -30,6 +30,19 @@ var last_notice: String = ""      # что показать в меню посл
 func _ready() -> void:
 	# Иначе два инстанса на одном ПК выдадут одинаковый код комнаты.
 	randomize()
+	# Фуллскрин (F11 / Alt+Enter) переключаем здесь: автолоад живёт всё
+	# время, поэтому сочетание работает и в меню, и в матче.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+func _input(event: InputEvent) -> void:
+	if not event.is_action_pressed("toggle_fullscreen"):
+		return
+	get_viewport().set_input_as_handled()
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 static func sanitize_nick(raw: String) -> String:

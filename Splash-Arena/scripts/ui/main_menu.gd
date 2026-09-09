@@ -10,11 +10,13 @@ extends Control
 ##        именем (страховка, если случайный вход не находит чужие комнаты);
 ##        попытки 4+  — create_room(случайный код): создаём свою, чтобы
 ##        в неё зашли следующие игроки.
-##   3. Как только room_joined — загружаем арену.
+##   3. Как только room_joined — открываем ЛОББИ (scenes/ui/lobby.tscn):
+##      там ждём всех игроков, все жмут «Принять» (как в LoL), и только
+##      после этого грузится арена main.tscn и начинается спавн.
 ##
 ## Размер матча — одна константа Session.MATCH_SIZE (сейчас 2 = тест 1 на 1).
 
-const MAIN_SCENE := "res://scenes/main/main.tscn"
+const LOBBY_SCENE := "res://scenes/ui/lobby.tscn"
 const SEARCH_STEP_SEC := 3.0    # как часто повторяем попытку найти матч
 const FOUND_DELAY_SEC := 0.6    # пауза перед загрузкой арены (показать «найдено»)
 const MAX_JOIN_FAILURES := 6    # после стольких ошибок входа останавливаем поиск
@@ -165,10 +167,13 @@ func _on_room_joined() -> void:
 	find_button.text = "МАТЧ НАЙДЕН"
 	find_button.disabled = true
 	search_bar.visible = false
-	search_status.text = "Матч найден! Загружаю арену..."
-	_set_status("Матч найден! Загружаю арену...", COLOR_OK)
+	search_status.text = "Матч найден! Открываю лобби..."
+	_set_status("Матч найден! Открываю лобби...", COLOR_OK)
 	await get_tree().create_timer(FOUND_DELAY_SEC).timeout
-	get_tree().change_scene_to_file(MAIN_SCENE)
+	# Сначала ЛОББИ: ждём всех игроков, все жмут «Принять» — и только
+	# потом лобби грузит main.tscn, где MatchManager просит ХОСТ
+	# заспавнить аватары. До приёма матча спавна нет.
+	get_tree().change_scene_to_file(LOBBY_SCENE)
 
 
 func _on_connection_failed(error: String) -> void:

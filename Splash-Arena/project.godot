@@ -25,6 +25,12 @@ Inputs="*res://autoload/inputs.gd"
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/size/window_width_override=1600
+window/size/window_height_override=900
+; Фуллскрин: интерфейс тянется вместе с разрешением (canvas_items),
+; а при другом соотношении сторон картинка расширяется, а не сплющивается.
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [fusion]
 

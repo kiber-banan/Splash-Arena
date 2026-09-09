@@ -2,40 +2,42 @@ class_name Player
 extends CharacterBody3D
 ## Игрок-дайвер (FPS) в топологии Fusion Client-Server.
 ##
-## Сеть:
-##  - Реплицируется через FusionServerReplicator (в сцене player.tscn).
-##  - Режимы репликатора (owner_mode = PLAYER_PREDICTED,
-##    root_replication_mode = AUTO) выставляются скриптом и в _enter_tree(),
-##    и в _ready() — по ИМЕНАМ из документации, так не страшна смена
-##    порядка enum в будущих версиях SDK. Значения в .tscn — запасной вариант.
-##  - Клиент с input-authority каждый physics tick упаковывает свой ввод
-##    (движение + yaw/pitch взгляда + биты действий) и шлёт его на сервер
-##    через queue_input(delta, buf). Тот же ввод локально исполняется
-##    в предсказании, а на сервере — авторитетно.
+## СПАВН: спавнит ТОЛЬКО хост (master client). Клиент не создаёт свой
+## аватар сам, а просит хост: Fusion.rpc(request_spawn, character_id).
+## Хост спавнит, выдаёт set_input_authority() и объектным RPC сообщает
+## аватару, чей он (set_owner_player) — на машине владельца это включает
+## камеру и захват мыши.
 ##
-## Оружие (шаг 3):
-##  - Выстрел — бит BUTTON_FIRE в пакете ввода. Исполнение в process_input
-##    (= on_process_input), то есть и на сервере (авторитетно), и в
-##    предсказании клиента.
-##  - Урон наносит ТОЛЬКО сервер: он один делает рейкаст от камеры и шлёт
-##    object-RPC take_damage() жертве. Клиент в предсказании рейкаст не
-##    делает — только кулдаун.
-##  - Трассер/вспышку видно всем: сервер шлёт object-RPC show_shot().
-##  - Хит-маркер: сервер шлёт rpc_to_player() СТРЕЛКУ (а не жертве) —
-##    HUD зарегистрирован как broadcast-приёмник.
-##  - HP не реплицируется свойством: сервер рассылает sync_vitals() после
-##    каждого изменения. Смерть -> респаун решает тоже сервер.
+## ЛОКАЛЬНЫЙ ИГРОК (камера + захват мыши + ввод) включается тремя путями,
+## все идемпотентны и срабатывают хоть один, хоть все сразу:
+##  1. хост вызывает setup_local_player() сразу после спавна (свой аватар);
+##  2. broadcast-RPC MatchManager.assign_owner(pid): каждый пир сам находит
+##     аватар по get_input_authority() и включает камеру владельцу;
+##  3. само-детект _try_setup_local() в _physics_process — если сервер
+##     уже выдал input authority, включаемся и без всяких RPC.
 ##
-## Локальный игрок (камера + захват мыши) настраивается тремя путями —
-## любой сработает, все идемпотентны:
-##  1. мастер вызывает setup_local_player() сразу после set_input_authority();
-##  2. мастер шлёт RPC claim_local_player(player) на машину владельца;
-##  3. сам персонаж ловит has_input_authority() в _physics_process.
+## ДВИЖЕНИЕ: вода. Скорость не ставится мгновенно — есть разгон и
+## инерция: velocity плавно тянется к целевой (MOVE_ACCEL), а когда ввода
+## нет — вода гасит скорость (MOVE_DRAG). Формула exp(-rate * delta)
+## одинакова на сервере и в предсказании при любом delta.
+##
+## Если предсказание Fusion по какой-то причине не исполняет ввод
+## (on_process_input не приходит), локальный игрок всё равно двигается:
+## включается локальная симуляция (см. _physics_process) и в HUD-дебаге
+## появляется метка «ЛОКАЛЬНАЯ СИМУЛЯЦИЯ» — это сигнал чинить сеть.
+##
+## Оружие (шаг 3): выстрел — бит BUTTON_FIRE во вводе, исполнение в
+## process_input; урон считает ТОЛЬКО сервер (рейкаст от глаз), жертве
+## уходит object-RPC take_damage(), хит-маркер — rpc_to_player() стрелку.
 
-const VERT_SPEED := 4.0        # м/с, вертикаль (всплытие/погружение)
 const LOOK_SENS := 0.003       # чувствительность мыши
 const PITCH_LIMIT := 1.35      # ~77°, предел наклона камеры
 const EYE_HEIGHT := 1.7        # высота глаз — откуда смотрит камера и бьёт гарпун
+
+const VERT_SPEED := 4.5        # м/с, вертикаль (всплытие/погружение)
+const MOVE_ACCEL := 9.0        # разгон в воде (1/с)
+const MOVE_DRAG := 3.5         # как вода гасит скорость без ввода (1/с)
+const PREDICTION_DEAD_MS := 400  # если ввод не исполнялся дольше — включаем локальную симуляцию
 
 const WEAPON_DAMAGE := 25      # урон гарпуна
 const FIRE_COOLDOWN := 0.35    # сек между выстрелами
@@ -55,13 +57,14 @@ const BUTTON_FIRE := 1
 const BUTTON_ABILITY := 2
 
 ## Кто я по классу. Константы дублируют Characters, но player.gd НЕ должен
-## зависеть от characters.gd: иначе получается цикл
+## зависеть от characters.gd: иначе цикл
 ## player.gd -> Characters -> preload(player_medic.tscn) -> player.gd.
 const CHARACTER_ASSAULT := 0
 const CHARACTER_MEDIC := 1
 const CHARACTER_SCOUT := 2
 
 const GROUP_LOCAL_PLAYER := "local_player"
+const GROUP_ALL := "players"            # все аватары в мире (и чужие тоже)
 const GROUP_PREVIEW_CAMERA := "preview_camera"
 const GROUP_EFFECTS := "effects"
 const GROUP_SPAWN_POINTS := "spawn_points"
@@ -90,6 +93,8 @@ var deaths: int = 0
 var debug_inputs_sent := 0
 var debug_inputs_executed := 0
 var debug_last_dir := Vector2.ZERO
+var debug_local_sim := false      # true = предсказание Fusion молчит, двигаем сами
+var debug_owner_pid := 0          # кому хост отдал этот аватар
 
 var _input_tick: int = 0
 var _is_local_player := false
@@ -98,6 +103,9 @@ var _pitch := 0.0
 var _fire_cooldown := 0.0
 var _ability_cooldown_left := 0.0
 var _ability_time_left := 0.0
+var _owner_player_id := 0
+var _last_input := PackedByteArray()
+var _last_input_exec_ms := 0
 
 
 func _enter_tree() -> void:
@@ -109,37 +117,22 @@ func _ready() -> void:
 	# И ещё раз здесь: если SDK сбрасывает режим при инициализации узла,
 	# вторая установка это перекроет (значения одинаковые, побочек нет).
 	_apply_replicator_modes()
-	# Сигнал Fusion: ввод приходит и на предсказание (клиент), и на сервер.
 	if not replicator.on_process_input.is_connected(_on_fusion_input):
 		replicator.on_process_input.connect(_on_fusion_input)
 	hp = max_hp
 	_apply_suit_color()
-	if not is_in_group(GROUP_LOCAL_PLAYER) and replicator.has_input_authority():
-		setup_local_player()
-
-
-func _apply_suit_color() -> void:
-	## Красим гидрокостюм в цвет персонажа. Материал дублируем — иначе
-	## все игроки покрасятся в цвет последнего заспавненного.
-	var body := $BodyMesh as MeshInstance3D
-	if body == null:
-		return
-	var mat := body.get_surface_override_material(0) as StandardMaterial3D
-	if mat == null:
-		mat = StandardMaterial3D.new()
-	else:
-		mat = mat.duplicate() as StandardMaterial3D
-	if mat == null:
-		return
-	mat.albedo_color = suit_color
-	body.set_surface_override_material(0, mat)
+	if not is_in_group(GROUP_ALL):
+		add_to_group(GROUP_ALL)
+	_try_setup_local()
 
 
 func setup_local_player() -> void:
-	## Вызывается для персонажа, которым управляет игрок на этой машине.
+	## Включает камеру, захват мыши и локальное управление этим аватаром.
 	if _is_local_player:
 		return
 	_is_local_player = true
+	_owner_player_id = Fusion.get_local_player_id()
+	debug_owner_pid = _owner_player_id
 	_yaw = rotation.y
 	if not is_in_group(GROUP_LOCAL_PLAYER):
 		add_to_group(GROUP_LOCAL_PLAYER)
@@ -184,6 +177,8 @@ static func random_spawn_position(tree: SceneTree) -> Vector3:
 
 
 func _exit_tree() -> void:
+	if is_in_group(GROUP_ALL):
+		remove_from_group(GROUP_ALL)
 	if _is_local_player:
 		_is_local_player = false
 		if is_in_group(GROUP_LOCAL_PLAYER):
@@ -202,28 +197,47 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	# Свой персонаж на клиенте появляется по сети (мастер его не настраивает
-	# на нашей машине), поэтому локальную настройку делаем лениво сами.
 	if not _is_local_player:
 		_try_setup_local()
-	# Ввод отправляем ТОЛЬКО с клиента, у которого input-authority.
-	if replicator.has_input_authority():
-		replicator.queue_input(delta, _create_input())
+	# Ввод отправляем только за свой аватар: has_input_authority() — норма,
+	# но если флаг по какой-то причине не взвёлся, ориентируемся на
+	# get_input_authority() (чей это аватар по версии сервера).
+	var has_input_authority := (
+		replicator.has_input_authority()
+		or replicator.get_input_authority() == Fusion.get_local_player_id()
+	)
+	if _is_local_player and has_input_authority:
+		_last_input = _create_input()
+		replicator.queue_input(delta, _last_input)
 	# process_input_queue(delta) вызывает on_process_input:
 	#  - на сервере   -> авторитетное исполнение
-	#  - на клиенте   -> предсказание (и повторное исполнение при коррекции)
+	#  - на клиенте   -> предсказание (и повтор при коррекции)
 	#  - у наблюдателя-> no-op
 	replicator.process_input_queue(delta)
+	# Страховка: если предсказание Fusion не исполняет ввод, двигаем аватара
+	# сами (иначе локальный игрок просто стоит). В HUD это видно как
+	# «ЛОКАЛЬНАЯ СИМУЛЯЦИЯ» — значит, надо чинить цепочку ввода.
+	debug_local_sim = (
+		_is_local_player
+		and not _last_input.is_empty()
+		and Time.get_ticks_msec() - _last_input_exec_ms > PREDICTION_DEAD_MS
+	)
+	if debug_local_sim:
+		_apply_input(_last_input, delta)
 
 
 func _try_setup_local() -> void:
-	## Третий путь настройки локального игрока (см. шапку файла).
-	if not is_inside_tree() or not Fusion.is_initialized():
+	## Само-детект (3-й путь): если этот аватар наш — включаем камеру.
+	if _is_local_player or not is_inside_tree() or not Fusion.is_initialized():
 		return
 	var local_id := Fusion.get_local_player_id()
 	if local_id <= 0:
 		return
-	if replicator.has_input_authority() or replicator.get_input_authority() == local_id:
+	if (
+		_owner_player_id == local_id
+		or replicator.has_input_authority()
+		or replicator.get_input_authority() == local_id
+	):
 		setup_local_player()
 
 
@@ -257,45 +271,50 @@ func _create_input() -> PackedByteArray:
 
 
 func _on_fusion_input(_tick: int, delta_time: float, payload: PackedByteArray, is_new: bool) -> void:
-	# Ввод исполняется одинаково на сервере и в предсказании клиента.
 	if payload.size() < INPUT_SIZE:
 		return
+	_last_input_exec_ms = Time.get_ticks_msec()
+	_apply_input(payload, delta_time)
+	_update_weapon(delta_time, payload.decode_u8(24), is_new)
+
+
+func _apply_input(payload: PackedByteArray, delta: float) -> void:
+	## Одна и та же логика на сервере, в предсказании и в локальной симуляции.
 	var input_x := payload.decode_float(0)   # +1 = D (вправо)
 	var input_y := payload.decode_float(4)   # -1 = W (вперёд), +1 = S (назад)
 	var vertical := payload.decode_float(8)  # +1 = вверх (Space)
 	var yaw := payload.decode_float(12)
 	var pitch := payload.decode_float(20)
-	var buttons := payload.decode_u8(24)
 
 	debug_inputs_executed += 1
 
 	# Yaw/pitch взгляда обновляем ВСЕГДА (не только у локального игрока):
-	# сервер симулирует чужих дайверов и должен стрелять из их глаз
-	# по их же направлению взгляда, иначе гарпун уйдёт горизонтально.
-	# У локального игрока значения из ввода совпадают с его мышью.
+	# сервер симулирует чужих дайверов и должен стрелять из их глаз.
 	_yaw = yaw
 	_pitch = pitch
 	rotation.y = yaw
 	camera_rig.rotation.x = pitch
 
-	# Способность обновляем ДО движения: рывок/ускорение должны
-	# подхватиться этим же пакетом ввода.
-	_update_ability(delta_time, buttons)
+	_update_ability(delta, payload.decode_u8(24))
 
-	# Направление относительно поворота персонажа (Yaw).
 	var body_basis := global_transform.basis
 	var forward := -input_y  # +1 = вперёд по взгляду
 	var direction := -body_basis.z * forward + body_basis.x * input_x
 	if direction.length() > 1.0:
 		direction = direction.normalized()
+	_swim(direction, vertical, delta)
 
-	velocity = direction * get_current_speed()
-	velocity.y = vertical * VERT_SPEED
-	# Подводный бой: плавучесть и сопротивление воды пока игнорируем,
-	# TODO: добавим физику воды (тяга, инерция) вместе с геймплеем.
+
+func _swim(direction: Vector3, vertical: float, delta: float) -> void:
+	## Вода: плавный разгон по вводу и инерция, когда ввода нет.
+	var desired := direction * get_current_speed()
+	desired.y = vertical * VERT_SPEED
+	var has_input := direction.length_squared() > 0.001 or absf(vertical) > 0.001
+	var rate := MOVE_ACCEL if has_input else MOVE_DRAG
+	# exp() — чтобы результат не зависел от величины delta (tick у сервера
+	# и у клиента может отличаться).
+	velocity = velocity.lerp(desired, clampf(1.0 - exp(-rate * delta), 0.0, 1.0))
 	move_and_slide()
-
-	_update_weapon(delta_time, buttons, is_new)
 
 
 # ---------- оружие ----------
@@ -309,48 +328,6 @@ func _update_weapon(delta_time: float, buttons: int, is_new: bool) -> void:
 
 func get_fire_cooldown_ratio() -> float:
 	return clampf(_fire_cooldown / FIRE_COOLDOWN, 0.0, 1.0)
-
-
-# ---------- способность (клавиша E) ----------
-#
-# Бит BUTTON_ABILITY едет в пакете ввода, исполняется в process_input:
-# на сервере — авторитетно, у клиента — в предсказании. Значение не
-# реплицируется как свойство: эффект (таймер/HP) живёт в симуляции,
-# а кулдаун — локальный таймер, который тикает одинаково на обеих сторонах.
-
-func get_current_speed() -> float:
-	if _ability_time_left > 0.0:
-		return move_speed * ability_speed_multiplier
-	return move_speed
-
-
-func get_ability_cooldown_ratio() -> float:
-	## 0 — только что использована, 1 — готова.
-	if ability_cooldown <= 0.0:
-		return 1.0
-	return clampf(1.0 - _ability_cooldown_left / ability_cooldown, 0.0, 1.0)
-
-
-func _update_ability(delta_time: float, buttons: int) -> void:
-	_ability_cooldown_left = maxf(_ability_cooldown_left - delta_time, 0.0)
-	_ability_time_left = maxf(_ability_time_left - delta_time, 0.0)
-	if (buttons & BUTTON_ABILITY) != 0 and _ability_cooldown_left <= 0.0:
-		_ability_cooldown_left = ability_cooldown
-		_use_ability()
-
-
-func _use_ability() -> void:
-	match character_id:
-		CHARACTER_MEDIC:
-			# Лечение: применяем сразу на всех пирах (HP в HUD без задержки),
-			# сервер вдогонку присылает авторитетное значение.
-			hp = mini(hp + ability_heal, max_hp)
-			if replicator.has_authority():
-				Fusion.rpc(sync_vitals, hp, deaths)
-		_:
-			# Штурмовик (рывок) и разведчик (ускорение): множитель скорости
-			# на время ability_duration, направление берётся из ввода.
-			_ability_time_left = ability_duration
 
 
 func _shoot(is_new: bool) -> void:
@@ -433,7 +410,7 @@ func _spawn_tracer(from: Vector3, to: Vector3, with_flash: bool) -> void:
 	tracer.mesh = mesh
 	tracer.material_override = mat
 	tracer.cast_shadows = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# Цилиндр смотрит вдоль своей оси Y, а Basis.looking_at даёт ось -Z:
+	# Цилиндр смотрит вдоль оси Y, а Basis.looking_at даёт ось -Z:
 	# доворачиваем на -90° вокруг X.
 	var basis := Basis().looking_at((to - from).normalized(), Vector3.UP) * Basis(Vector3.RIGHT, -PI / 2.0)
 	tracer.transform = Transform3D(basis, from + (to - from) * 0.5)
@@ -475,6 +452,46 @@ func _spawn_muzzle_flash(at: Vector3) -> void:
 	tween.tween_callback(flash.queue_free)
 
 
+# ---------- способность (клавиша E) ----------
+#
+# Бит BUTTON_ABILITY едет в пакете ввода, исполняется в process_input:
+# на сервере — авторитетно, у клиента — в предсказании.
+
+func get_current_speed() -> float:
+	if _ability_time_left > 0.0:
+		return move_speed * ability_speed_multiplier
+	return move_speed
+
+
+func get_ability_cooldown_ratio() -> float:
+	## 0 — только что использована, 1 — готова.
+	if ability_cooldown <= 0.0:
+		return 1.0
+	return clampf(1.0 - _ability_cooldown_left / ability_cooldown, 0.0, 1.0)
+
+
+func _update_ability(delta_time: float, buttons: int) -> void:
+	_ability_cooldown_left = maxf(_ability_cooldown_left - delta_time, 0.0)
+	_ability_time_left = maxf(_ability_time_left - delta_time, 0.0)
+	if (buttons & BUTTON_ABILITY) != 0 and _ability_cooldown_left <= 0.0:
+		_ability_cooldown_left = ability_cooldown
+		_use_ability()
+
+
+func _use_ability() -> void:
+	match character_id:
+		CHARACTER_MEDIC:
+			# Лечение: применяем сразу на всех пирах (HP в HUD без задержки),
+			# сервер вдогонку присылает авторитетное значение.
+			hp = mini(hp + ability_heal, max_hp)
+			if replicator.has_authority():
+				Fusion.rpc(sync_vitals, hp, deaths)
+		_:
+			# Штурмовик (рывок) и разведчик (ускорение): множитель скорости
+			# на время ability_duration, направление берётся из ввода.
+			_ability_time_left = ability_duration
+
+
 # ---------- здоровье, смерть, респаун ----------
 
 @rpc("any_peer", "call_local")
@@ -508,6 +525,23 @@ func sync_vitals(new_hp: int, new_deaths: int) -> void:
 
 
 # ---------- служебное ----------
+
+func _apply_suit_color() -> void:
+	## Красим гидрокостюм в цвет персонажа. Материал дублируем — иначе
+	## все игроки покрасятся в цвет последнего заспавненного.
+	var body := $BodyMesh as MeshInstance3D
+	if body == null:
+		return
+	var mat := body.get_surface_override_material(0) as StandardMaterial3D
+	if mat == null:
+		mat = StandardMaterial3D.new()
+	else:
+		mat = mat.duplicate() as StandardMaterial3D
+	if mat == null:
+		return
+	mat.albedo_color = suit_color
+	body.set_surface_override_material(0, mat)
+
 
 func _disable_preview_cameras() -> void:
 	## Иначе после деспавна игрока вид переключится обратно на камеру арены.

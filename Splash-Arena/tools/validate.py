@@ -224,11 +224,53 @@ _, hext, _, h = hud
 hroot = h.get("HUD", {})
 if "hud.gd" not in script_of(hext, hroot):
     fail("hud.tscn: у корня HUD нет скрипта hud.gd")
-if hroot.get("mouse_filter") != "3":
-    fail("hud.tscn: корень HUD должен быть mouse_filter=3 (IGNORE), иначе мышь не дойдёт до игрока")
-for nm in ("DebugLabel", "RoomInfo", "PlayerList", "HintLabel", "HealthBar", "HealthLabel", "AbilityBar", "AbilityLabel", "DamageFlash", "CenterMessage"):
-    if h.get("HUD/" + nm, {}).get("unique_name_in_owner") != "true":
+# IGNORE = 2. Иначе Control съест движение мыши и _unhandled_input игрока
+# не сработает — классический «камера не крутится».
+if hroot.get("mouse_filter") != "2":
+    fail("hud.tscn: корень HUD должен быть mouse_filter=2 (IGNORE), иначе мышь не дойдёт до игрока")
+for nm in ("DebugLabel", "DebugPanel", "RoomInfo", "PlayerList", "HintLabel", "HealthBar",
+           "HealthLabel", "AbilityBar", "AbilityLabel", "DamageFlash", "CenterMessage"):
+    if not any(k.rsplit("/", 1)[-1] == nm and n.get("unique_name_in_owner") == "true"
+               for k, n in h.items()):
         fail(f"hud.tscn: {nm} без unique_name_in_owner")
+# Весь HUD, кроме корня, тоже не должен перехватывать мышь.
+for k, n in h.items():
+    if k == "HUD":
+        continue
+    if n.get("mouse_filter", "2") not in ("2", "3"):
+        fail(f"hud.tscn: узел {k} перехватывает мышь (mouse_filter={n['mouse_filter']})")
+
+# ---------- 2b. Лобби: принятие матча до спавна ----------
+_, lext, _, lobby = check_tscn("scenes/ui/lobby.tscn")
+lroot = lobby.get("Lobby", {})
+if "lobby.gd" not in script_of(lext, lroot):
+    fail("lobby.tscn: у корня Lobby нет скрипта lobby.gd")
+if lroot.get("anchors_preset") != "15":
+    fail("lobby.tscn: корень Lobby должен тянуться на весь экран (anchors_preset=15)")
+for nm in ("Title", "Subtitle", "TimerLabel", "TimerBar", "PlayersList",
+           "AcceptButton", "DeclineButton", "StatusLabel"):
+    if not any(k.rsplit("/", 1)[-1] == nm and n.get("unique_name_in_owner") == "true"
+               for k, n in lobby.items()):
+        fail(f"lobby.tscn: {nm} без unique_name_in_owner")
+
+lsrc = (ROOT / "scripts/ui/lobby.gd").read_text(encoding="utf-8")
+# strip_gd() определён ниже, поэтому строки убираем тем же приёмом локально.
+lcode = "\n".join(re.sub(r'"[^"]*"', '""', line.split("#")[0]) for line in lsrc.splitlines())
+for uq in set(re.findall(r'%([A-Za-z_]\w*)', lcode)):
+    if not any(n.get("unique_name_in_owner") == "true" and k.rsplit("/", 1)[-1] == uq
+               for k, n in lobby.items()):
+        fail(f"scripts/ui/lobby.gd: %{uq} не найден в scenes/ui/lobby.tscn")
+for must in ("lobby_start", "lobby_cancel", "lobby_begin_accept", "lobby_player",
+             "MAIN_SCENE", "register_broadcast_receiver"):
+    if must not in lsrc:
+        fail(f"scripts/ui/lobby.gd: нет {must} — сломается приём матча")
+# Гейт: арена грузится ТОЛЬКО из лобби, меню ведёт в лобби.
+if "main/main.tscn" in (ROOT / "scripts/ui/main_menu.gd").read_text(encoding="utf-8"):
+    fail("main_menu.gd: меню не должно грузить main.tscn напрямую — только лобби")
+if "scenes/ui/lobby.tscn" not in (ROOT / "scripts/ui/main_menu.gd").read_text(encoding="utf-8"):
+    fail("main_menu.gd: после входа в комнату надо открывать scenes/ui/lobby.tscn")
+if 'change_scene_to_file(MAIN_SCENE)' not in lsrc:
+    fail("scripts/ui/lobby.gd: арена main.tscn должна грузиться из лобби (после приёма)")
 
 # ---------- 3. Скрипты: пути, узлы, санити ----------
 GD = {
@@ -236,6 +278,7 @@ GD = {
     "scripts/player/player.gd": ("scenes/player/player.tscn", "Player", pexp),
     "scripts/ui/main_menu.gd": ("scenes/ui/main_menu.tscn", "MainMenu", uexp),
     "scripts/ui/hud.gd": ("scenes/main/main.tscn", "Main/HUD", mexp),
+    "scripts/ui/lobby.gd": ("scenes/ui/lobby.tscn", "Lobby", scene_nodes("scenes/ui/lobby.tscn")),
     "scripts/player/characters.gd": (None, None, None),
     "scripts/world/underwater_light.gd": ("scenes/main/main.tscn", "Main/UnderwaterLight", mexp),
     "scripts/world/arena.gd": ("scenes/main/main.tscn", "Main/Arena", mexp),
@@ -378,6 +421,10 @@ pg = (ROOT / "project.godot").read_text(encoding="utf-8")
 mm_ = re.search(r'run/main_scene="([^"]+)"', pg)
 if not mm_ or not res_path(mm_.group(1)).exists():
     fail("project.godot: run/main_scene отсутствует")
+if 'window/stretch/mode="canvas_items"' not in pg:
+    fail('project.godot: нет window/stretch/mode="canvas_items" — интерфейс не тянется под фуллскрин')
+if 'window/stretch/aspect="expand"' not in pg:
+    fail('project.godot: нет window/stretch/aspect="expand" — картинка сплющится на широком экране')
 for am in re.finditer(r'^\w+="\*res://[^"]+"', pg, re.M):
     ap = re.search(r'"\*(res://[^"]+)"', am.group(0)).group(1)
     if not res_path(ap).exists():
