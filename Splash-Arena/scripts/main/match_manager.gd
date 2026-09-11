@@ -261,7 +261,9 @@ func _respawn(player_id: int) -> void:
 	## старый объект и создаём новый, раз уж спавн не сохраняется.
 	if not Fusion.is_master_client():
 		return
-	var old := _spawned_for.get(player_id)
+	# Dictionary.get() возвращает Variant, поэтому тип указываем через as:
+	# иначе GDScript выведет Variant и (у тебя warnings-as-errors) не соберётся.
+	var old := _spawned_for.get(player_id) as Node
 	if old != null and is_instance_valid(old) and spawner.has_method("despawn"):
 		spawner.despawn(old)
 		_spawned_for.erase(player_id)

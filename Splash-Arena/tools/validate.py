@@ -407,6 +407,19 @@ for rel, (scene, base, nodes) in GD.items():
         for uq in set(re.findall(r'%([A-Za-z_]\w*)', code)):
             if not any(n.get("unique_name_in_owner") == "true" and k.rsplit("/",1)[-1] == uq for k, n in nodes.items()):
                 fail(f"{rel}: %{uq} не найден в {scene}")
+    # var x := <Variant> — GDScript выведет Variant и (при warnings-as-errors)
+    # не даст запустить игру. Ловим типичный случай: Dictionary.get() и company.
+    for n, line in enumerate(strip_gd(src), 1):
+        m = re.search(r"\bvar\s+\w+\s*:=\s*(.+)$", line)
+        if not m:
+            continue
+        rhs = m.group(1)
+        if re.match(r"^(String|int|float|bool|str|Vector2|Vector3|Color|Packed\w+)\s*\(", rhs):
+            continue          # обёртка даёт конкретный тип
+        if " as " in rhs:
+            continue          # явное приведение
+        if re.search(r"\.(get|get_value|get_or_add)\s*\(", rhs):
+            fail(f"{rel}:{n}: `:=` выводит Variant из .get() — укажи тип через `as` или обёртку")
     # PackedStringArray не имеет join() в Godot 4 — только String.join(parts)
     for psname in re.findall(r"var\s+(\w+)\s*(?::=\s*|:\s*PackedStringArray\s*=\s*)PackedStringArray\(\)", src):
         for n, line in enumerate(code.splitlines(), 1):
