@@ -50,7 +50,7 @@ const PREDICTION_DEAD_MS := 400  # если ввод не исполнялся �
 
 const WEAPON_DAMAGE := 25      # урон гарпуна
 const FIRE_COOLDOWN := 0.35    # сек между выстрелами
-const WEAPON_RANGE := 120.0    # дальность хитскана
+const WEAPON_RANGE := 200.0  # дальность хитскана (арена стала в 7 раз больше)
 
 ## Раскладка пакета ввода (байты):
 ##   0  float  move_x    (+1 = D, вправо)
@@ -413,6 +413,7 @@ func _apply_shot(from: Vector3, to: Vector3) -> void:
 	var hit := space.intersect_ray(query)
 	if hit.is_empty():
 		return
+	_spawn_impact(Vector3(hit["position"]))
 	var victim := _find_player(hit["collider"])
 	if victim == null or victim == self:
 		return
@@ -442,44 +443,121 @@ static func _find_player(collider: Variant) -> Player:
 
 
 func _spawn_tracer(from: Vector3, to: Vector3, with_flash: bool) -> void:
+	## Гарпун в воде: яркий сердечник + мягкое свечение вокруг + пузыри
+	## из ствола. Так выстрел заметно читается даже на большой арене.
 	var fx := get_tree().get_first_node_in_group(GROUP_EFFECTS)
 	if fx == null:
 		return
 	var distance := from.distance_to(to)
 	if distance < 0.01:
 		return
-
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.025
-	mesh.bottom_radius = 0.025
-	mesh.height = 1.0
-	mesh.radial_segments = 5
-
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.55, 0.95, 1.0)
-	mat.emission_enabled = true
-	mat.emission = Color(0.55, 0.95, 1.0)
-	mat.emission_energy_multiplier = 2.0
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-
-	var tracer := MeshInstance3D.new()
-	tracer.mesh = mesh
-	tracer.material_override = mat
-	tracer.cast_shadows = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# Цилиндр смотрит вдоль оси Y, а Basis.looking_at даёт ось -Z:
 	# доворачиваем на -90° вокруг X.
 	var basis := Basis().looking_at((to - from).normalized(), Vector3.UP) * Basis(Vector3.RIGHT, -PI / 2.0)
-	tracer.transform = Transform3D(basis, from + (to - from) * 0.5)
-	tracer.scale = Vector3(1.0, distance, 1.0)
-	fx.add_child(tracer)
-
-	var tween := tracer.create_tween()
-	tween.tween_property(mat, "albedo_color", Color(0.55, 0.95, 1.0, 0.0), 0.15)
-	tween.tween_callback(tracer.queue_free)
-
+	var center := from + (to - from) * 0.5
+	_add_beam(fx, basis, center, distance, 0.09, Color(0.8, 1.0, 1.0), 5.0, 0.16)
+	_add_beam(fx, basis, center, distance, 0.30, Color(0.25, 0.75, 1.0), 1.4, 0.32)
 	if with_flash:
 		_spawn_muzzle_flash(from)
+		_spawn_bubbles(fx, from, 5, 0.35)
+
+
+func _add_beam(parent: Node, basis: Basis, center: Vector3, length: float,
+		radius: float, color: Color, energy: float, life: float) -> void:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = 1.0
+	mesh.radial_segments = 6
+
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.emission_enabled = true
+	mat.emission = color
+	mat.emission_energy_multiplier = energy
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	var beam := MeshInstance3D.new()
+	beam.mesh = mesh
+	beam.material_override = mat
+	beam.cast_shadows = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	beam.transform = Transform3D(basis, center)
+	beam.scale = Vector3(1.0, length, 1.0)
+	parent.add_child(beam)
+
+	var tween := beam.create_tween()
+	tween.tween_property(mat, "albedo_color", Color(color.r, color.g, color.b, 0.0), life)
+	tween.tween_callback(beam.queue_free)
+
+
+func _spawn_bubbles(parent: Node, at: Vector3, count: int, spread: float) -> void:
+	## Пузыри: всплывают и тают. В воде выглядит натуральнее искр.
+	for i in count:
+		var r := randf_range(0.05, 0.16)
+		var mesh := SphereMesh.new()
+		mesh.radius = r
+		mesh.height = r * 2.0
+		mesh.radial_segments = 6
+		mesh.rings = 4
+
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.7, 0.95, 1.0, 0.55)
+		mat.emission_enabled = true
+		mat.emission = Color(0.4, 0.8, 1.0)
+		mat.emission_energy_multiplier = 1.2
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+		var bubble := MeshInstance3D.new()
+		bubble.mesh = mesh
+		bubble.material_override = mat
+		bubble.cast_shadows = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		bubble.position = at + Vector3(
+			randf_range(-spread, spread), randf_range(-spread, spread), randf_range(-spread, spread))
+		parent.add_child(bubble)
+
+		var life := randf_range(0.5, 1.1)
+		var target := bubble.position + Vector3(
+			randf_range(-0.4, 0.4), randf_range(1.2, 2.6), randf_range(-0.4, 0.4))
+		var tw := bubble.create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(bubble, "position", target, life)
+		tw.tween_property(mat, "albedo_color", Color(0.7, 0.95, 1.0, 0.0), life)
+		tw.chain().tween_callback(bubble.queue_free)
+
+
+func _spawn_impact(at: Vector3) -> void:
+	## Попадание: вспышка + облако пузырей в точке (и по скалам, и по игроку).
+	var fx := get_tree().get_first_node_in_group(GROUP_EFFECTS)
+	if fx == null:
+		return
+	_spawn_bubbles(fx, at, 8, 0.45)
+
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.85, 1.0, 1.0, 0.9)
+	mat.emission_enabled = true
+	mat.emission = Color(0.6, 0.95, 1.0)
+	mat.emission_energy_multiplier = 4.0
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.22
+	mesh.height = 0.44
+	var flash := MeshInstance3D.new()
+	flash.mesh = mesh
+	flash.material_override = mat
+	flash.cast_shadows = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	flash.position = at
+	fx.add_child(flash)
+
+	var tw := flash.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(flash, "scale", Vector3(2.4, 2.4, 2.4), 0.22)
+	tw.tween_property(mat, "albedo_color", Color(0.85, 1.0, 1.0, 0.0), 0.22)
+	tw.chain().tween_callback(flash.queue_free)
 
 
 func _spawn_muzzle_flash(at: Vector3) -> void:
@@ -495,8 +573,8 @@ func _spawn_muzzle_flash(at: Vector3) -> void:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
 	var mesh := SphereMesh.new()
-	mesh.radius = 0.16
-	mesh.height = 0.32
+	mesh.radius = 0.18
+	mesh.height = 0.36
 	var flash := MeshInstance3D.new()
 	flash.mesh = mesh
 	flash.material_override = mat
@@ -505,7 +583,7 @@ func _spawn_muzzle_flash(at: Vector3) -> void:
 	fx.add_child(flash)
 
 	var tween := flash.create_tween()
-	tween.tween_property(mat, "albedo_color", Color(0.8, 1.0, 1.0, 0.0), 0.08)
+	tween.tween_property(mat, "albedo_color", Color(0.8, 1.0, 1.0, 0.0), 0.09)
 	tween.tween_callback(flash.queue_free)
 
 

@@ -52,6 +52,7 @@ var _done := false
 
 
 func _ready() -> void:
+	add_to_group("lobby")
 	Fusion.register_broadcast_receiver(self)
 	Fusion.player_left.connect(_on_player_left)
 	Fusion.room_left.connect(_on_room_left)

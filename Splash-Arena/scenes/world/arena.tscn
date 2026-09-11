@@ -1,0 +1,1139 @@
+[gd_scene load_steps=155 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/arena.gd" id="1_arena"]
+[ext_resource type="Shader" path="res://shaders/water/caustics.gdshader" id="2_caustics"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0"]
+shader = ExtResource("2_caustics")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+albedo_color = Color(0.36, 0.43, 0.5, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+material = SubResource("ShaderMaterial_0")
+size = Vector3(420.0000, 2.0000, 420.0000)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3"]
+size = Vector3(420.0000, 2.0000, 420.0000)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(416.0000, 140.0000, 8.0000)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5"]
+size = Vector3(416.0000, 140.0000, 8.0000)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(416.0000, 140.0000, 8.0000)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(416.0000, 140.0000, 8.0000)
+
+[sub_resource type="BoxMesh" id="BoxMesh_8"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(8.0000, 140.0000, 416.0000)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_9"]
+size = Vector3(8.0000, 140.0000, 416.0000)
+
+[sub_resource type="BoxMesh" id="BoxMesh_10"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(8.0000, 140.0000, 416.0000)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_11"]
+size = Vector3(8.0000, 140.0000, 416.0000)
+
+[sub_resource type="BoxMesh" id="BoxMesh_12"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(16.4318, 46.5200, 11.2436)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_13"]
+size = Vector3(16.4318, 46.5200, 11.2436)
+
+[sub_resource type="BoxMesh" id="BoxMesh_14"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(12.1679, 53.9337, 12.8410)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_15"]
+size = Vector3(12.1679, 53.9337, 12.8410)
+
+[sub_resource type="BoxMesh" id="BoxMesh_16"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(13.1162, 63.7655, 10.2093)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_17"]
+size = Vector3(13.1162, 63.7655, 10.2093)
+
+[sub_resource type="BoxMesh" id="BoxMesh_18"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(15.9854, 61.9076, 19.6135)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_19"]
+size = Vector3(15.9854, 61.9076, 19.6135)
+
+[sub_resource type="BoxMesh" id="BoxMesh_20"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(18.8570, 49.2669, 13.3414)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_21"]
+size = Vector3(18.8570, 49.2669, 13.3414)
+
+[sub_resource type="BoxMesh" id="BoxMesh_22"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(17.7459, 33.0392, 15.5602)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_23"]
+size = Vector3(17.7459, 33.0392, 15.5602)
+
+[sub_resource type="BoxMesh" id="BoxMesh_24"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(9.1183, 28.9515, 12.4798)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_25"]
+size = Vector3(9.1183, 28.9515, 12.4798)
+
+[sub_resource type="BoxMesh" id="BoxMesh_26"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(12.9613, 76.6450, 14.1787)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_27"]
+size = Vector3(12.9613, 76.6450, 14.1787)
+
+[sub_resource type="BoxMesh" id="BoxMesh_28"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(12.5370, 83.2548, 15.7895)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_29"]
+size = Vector3(12.5370, 83.2548, 15.7895)
+
+[sub_resource type="BoxMesh" id="BoxMesh_30"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(17.2464, 73.0452, 10.2259)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_31"]
+size = Vector3(17.2464, 73.0452, 10.2259)
+
+[sub_resource type="BoxMesh" id="BoxMesh_32"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(17.6396, 39.4245, 9.6997)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_33"]
+size = Vector3(17.6396, 39.4245, 9.6997)
+
+[sub_resource type="BoxMesh" id="BoxMesh_34"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(8.4720, 85.4121, 13.8838)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_35"]
+size = Vector3(8.4720, 85.4121, 13.8838)
+
+[sub_resource type="BoxMesh" id="BoxMesh_36"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(9.8218, 56.5671, 8.8273)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_37"]
+size = Vector3(9.8218, 56.5671, 8.8273)
+
+[sub_resource type="BoxMesh" id="BoxMesh_38"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(8.1819, 64.3710, 15.2925)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_39"]
+size = Vector3(8.1819, 64.3710, 15.2925)
+
+[sub_resource type="BoxMesh" id="BoxMesh_40"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(13.8792, 56.8142, 17.7180)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_41"]
+size = Vector3(13.8792, 56.8142, 17.7180)
+
+[sub_resource type="BoxMesh" id="BoxMesh_42"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(15.6356, 27.8799, 8.8863)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_43"]
+size = Vector3(15.6356, 27.8799, 8.8863)
+
+[sub_resource type="BoxMesh" id="BoxMesh_44"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(17.8923, 70.6180, 18.4123)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_45"]
+size = Vector3(17.8923, 70.6180, 18.4123)
+
+[sub_resource type="BoxMesh" id="BoxMesh_46"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(11.9611, 29.3556, 16.2819)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_47"]
+size = Vector3(11.9611, 29.3556, 16.2819)
+
+[sub_resource type="BoxMesh" id="BoxMesh_48"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(14.6504, 44.2732, 15.4374)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_49"]
+size = Vector3(14.6504, 44.2732, 15.4374)
+
+[sub_resource type="BoxMesh" id="BoxMesh_50"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(16.9805, 48.1749, 12.0870)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_51"]
+size = Vector3(16.9805, 48.1749, 12.0870)
+
+[sub_resource type="BoxMesh" id="BoxMesh_52"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(16.1628, 33.0544, 9.9915)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_53"]
+size = Vector3(16.1628, 33.0544, 9.9915)
+
+[sub_resource type="BoxMesh" id="BoxMesh_54"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(16.6087, 40.5637, 19.9274)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_55"]
+size = Vector3(16.6087, 40.5637, 19.9274)
+
+[sub_resource type="BoxMesh" id="BoxMesh_56"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(11.5351, 41.6752, 16.8335)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_57"]
+size = Vector3(11.5351, 41.6752, 16.8335)
+
+[sub_resource type="BoxMesh" id="BoxMesh_58"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(16.2678, 27.9380, 12.1791)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_59"]
+size = Vector3(16.2678, 27.9380, 12.1791)
+
+[sub_resource type="BoxMesh" id="BoxMesh_60"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(16.7286, 48.3118, 15.3137)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_61"]
+size = Vector3(16.7286, 48.3118, 15.3137)
+
+[sub_resource type="BoxMesh" id="BoxMesh_62"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(14.1216, 56.0140, 9.2576)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_63"]
+size = Vector3(14.1216, 56.0140, 9.2576)
+
+[sub_resource type="BoxMesh" id="BoxMesh_64"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(16.3265, 81.7181, 14.3903)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_65"]
+size = Vector3(16.3265, 81.7181, 14.3903)
+
+[sub_resource type="BoxMesh" id="BoxMesh_66"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(19.9607, 37.0436, 16.9453)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_67"]
+size = Vector3(19.9607, 37.0436, 16.9453)
+
+[sub_resource type="BoxMesh" id="BoxMesh_68"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(11.0770, 69.4992, 17.7969)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_69"]
+size = Vector3(11.0770, 69.4992, 17.7969)
+
+[sub_resource type="BoxMesh" id="BoxMesh_70"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(13.0513, 51.6965, 8.4782)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_71"]
+size = Vector3(13.0513, 51.6965, 8.4782)
+
+[sub_resource type="BoxMesh" id="BoxMesh_72"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(12.1104, 64.8363, 13.0375)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_73"]
+size = Vector3(12.1104, 64.8363, 13.0375)
+
+[sub_resource type="BoxMesh" id="BoxMesh_74"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(14.2952, 62.6045, 9.3337)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_75"]
+size = Vector3(14.2952, 62.6045, 9.3337)
+
+[sub_resource type="BoxMesh" id="BoxMesh_76"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(17.4317, 73.9791, 10.8950)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_77"]
+size = Vector3(17.4317, 73.9791, 10.8950)
+
+[sub_resource type="BoxMesh" id="BoxMesh_78"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(15.4244, 53.8322, 13.7222)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_79"]
+size = Vector3(15.4244, 53.8322, 13.7222)
+
+[sub_resource type="BoxMesh" id="BoxMesh_80"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(12.9488, 84.3979, 10.8766)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_81"]
+size = Vector3(12.9488, 84.3979, 10.8766)
+
+[sub_resource type="BoxMesh" id="BoxMesh_82"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(17.9464, 60.7635, 16.4272)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_83"]
+size = Vector3(17.9464, 60.7635, 16.4272)
+
+[sub_resource type="BoxMesh" id="BoxMesh_84"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(14.2241, 83.1456, 16.6855)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_85"]
+size = Vector3(14.2241, 83.1456, 16.6855)
+
+[sub_resource type="BoxMesh" id="BoxMesh_86"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(19.0154, 29.9567, 13.2166)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_87"]
+size = Vector3(19.0154, 29.9567, 13.2166)
+
+[sub_resource type="BoxMesh" id="BoxMesh_88"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(9.5763, 87.9059, 10.2391)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_89"]
+size = Vector3(9.5763, 87.9059, 10.2391)
+
+[sub_resource type="BoxMesh" id="BoxMesh_90"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(12.1143, 48.9383, 8.7234)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_91"]
+size = Vector3(12.1143, 48.9383, 8.7234)
+
+[sub_resource type="BoxMesh" id="BoxMesh_92"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(14.7471, 82.8841, 17.8516)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_93"]
+size = Vector3(14.7471, 82.8841, 17.8516)
+
+[sub_resource type="BoxMesh" id="BoxMesh_94"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(13.7273, 32.9371, 16.6542)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_95"]
+size = Vector3(13.7273, 32.9371, 16.6542)
+
+[sub_resource type="BoxMesh" id="BoxMesh_96"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(17.2093, 83.4079, 14.4153)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_97"]
+size = Vector3(17.2093, 83.4079, 14.4153)
+
+[sub_resource type="BoxMesh" id="BoxMesh_98"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(17.0417, 43.5782, 9.2605)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_99"]
+size = Vector3(17.0417, 43.5782, 9.2605)
+
+[sub_resource type="BoxMesh" id="BoxMesh_100"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(13.4626, 39.5963, 18.5502)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_101"]
+size = Vector3(13.4626, 39.5963, 18.5502)
+
+[sub_resource type="BoxMesh" id="BoxMesh_102"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(10.9153, 40.1244, 16.7806)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_103"]
+size = Vector3(10.9153, 40.1244, 16.7806)
+
+[sub_resource type="BoxMesh" id="BoxMesh_104"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(18.3150, 59.1631, 13.4291)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_105"]
+size = Vector3(18.3150, 59.1631, 13.4291)
+
+[sub_resource type="BoxMesh" id="BoxMesh_106"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(10.9089, 71.6354, 11.4698)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_107"]
+size = Vector3(10.9089, 71.6354, 11.4698)
+
+[sub_resource type="BoxMesh" id="BoxMesh_108"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(11.7621, 61.3745, 19.7729)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_109"]
+size = Vector3(11.7621, 61.3745, 19.7729)
+
+[sub_resource type="BoxMesh" id="BoxMesh_110"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(14.2884, 45.7204, 16.1669)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_111"]
+size = Vector3(14.2884, 45.7204, 16.1669)
+
+[sub_resource type="BoxMesh" id="BoxMesh_112"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(12.4045, 35.8258, 13.2867)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_113"]
+size = Vector3(12.4045, 35.8258, 13.2867)
+
+[sub_resource type="BoxMesh" id="BoxMesh_114"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(11.8175, 50.9686, 18.2362)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_115"]
+size = Vector3(11.8175, 50.9686, 18.2362)
+
+[sub_resource type="BoxMesh" id="BoxMesh_116"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(15.7471, 75.9570, 12.8716)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_117"]
+size = Vector3(15.7471, 75.9570, 12.8716)
+
+[sub_resource type="BoxMesh" id="BoxMesh_118"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(18.9739, 53.3945, 11.3910)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_119"]
+size = Vector3(18.9739, 53.3945, 11.3910)
+
+[sub_resource type="BoxMesh" id="BoxMesh_120"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(16.5291, 38.1654, 10.6365)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_121"]
+size = Vector3(16.5291, 38.1654, 10.6365)
+
+[sub_resource type="BoxMesh" id="BoxMesh_122"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(8.7066, 45.3935, 10.1749)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_123"]
+size = Vector3(8.7066, 45.3935, 10.1749)
+
+[sub_resource type="BoxMesh" id="BoxMesh_124"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(11.3048, 87.9075, 9.7980)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_125"]
+size = Vector3(11.3048, 87.9075, 9.7980)
+
+[sub_resource type="BoxMesh" id="BoxMesh_126"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(12.4402, 85.3592, 8.4015)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_127"]
+size = Vector3(12.4402, 85.3592, 8.4015)
+
+[sub_resource type="BoxMesh" id="BoxMesh_128"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(13.2902, 87.7530, 14.8775)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_129"]
+size = Vector3(13.2902, 87.7530, 14.8775)
+
+[sub_resource type="BoxMesh" id="BoxMesh_130"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(11.8187, 77.4825, 12.6795)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_131"]
+size = Vector3(11.8187, 77.4825, 12.6795)
+
+[sub_resource type="BoxMesh" id="BoxMesh_132"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(11.1177, 72.3826, 16.6527)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_133"]
+size = Vector3(11.1177, 72.3826, 16.6527)
+
+[sub_resource type="BoxMesh" id="BoxMesh_134"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(10.2758, 83.7293, 17.3810)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_135"]
+size = Vector3(10.2758, 83.7293, 17.3810)
+
+[sub_resource type="BoxMesh" id="BoxMesh_136"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(15.2477, 34.3611, 12.7844)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_137"]
+size = Vector3(15.2477, 34.3611, 12.7844)
+
+[sub_resource type="BoxMesh" id="BoxMesh_138"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(13.5747, 83.1848, 10.1598)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_139"]
+size = Vector3(13.5747, 83.1848, 10.1598)
+
+[sub_resource type="BoxMesh" id="BoxMesh_140"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(15.4915, 88.2727, 9.4666)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_141"]
+size = Vector3(15.4915, 88.2727, 9.4666)
+
+[sub_resource type="BoxMesh" id="BoxMesh_142"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(9.3200, 31.3373, 11.8654)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_143"]
+size = Vector3(9.3200, 31.3373, 11.8654)
+
+[sub_resource type="BoxMesh" id="BoxMesh_144"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(18.5063, 74.8003, 14.0719)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_145"]
+size = Vector3(18.5063, 74.8003, 14.0719)
+
+[sub_resource type="BoxMesh" id="BoxMesh_146"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(11.4017, 29.0372, 14.7589)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_147"]
+size = Vector3(11.4017, 29.0372, 14.7589)
+
+[sub_resource type="BoxMesh" id="BoxMesh_148"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(10.6839, 78.1828, 13.8442)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_149"]
+size = Vector3(10.6839, 78.1828, 13.8442)
+
+[sub_resource type="BoxMesh" id="BoxMesh_150"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(12.5893, 36.6584, 19.1576)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_151"]
+size = Vector3(12.5893, 36.6584, 19.1576)
+
+[node name="Arena" type="StaticBody3D"]
+script = ExtResource("1_arena")
+
+[node name="FloorMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_2")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, 0.0000, -31.0000, 0.0000)
+
+[node name="FloorCollision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_3")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, 0.0000, -31.0000, 0.0000)
+
+[node name="WallNorthMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_4")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, 0.0000, 40.0000, -204.0000)
+
+[node name="WallNorthCollision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_5")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, 0.0000, 40.0000, -204.0000)
+
+[node name="WallSouthMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_6")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, 0.0000, 40.0000, 204.0000)
+
+[node name="WallSouthCollision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_7")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, 0.0000, 40.0000, 204.0000)
+
+[node name="WallWestMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_8")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, -204.0000, 40.0000, 0.0000)
+
+[node name="WallWestCollision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_9")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, -204.0000, 40.0000, 0.0000)
+
+[node name="WallEastMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_10")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, 204.0000, 40.0000, 0.0000)
+
+[node name="WallEastCollision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_11")
+transform = Transform3D(1.0, 0, -0.0, 0, 1, 0, 0.0, 0, 1.0, 204.0000, 40.0000, 0.0000)
+
+[node name="Rock00Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_12")
+transform = Transform3D(-0.900588, 0, -0.434673, 0, 1, 0, 0.434673, 0, -0.900588, 1.6666, -6.7400, -102.7855)
+
+[node name="Rock00Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_13")
+transform = Transform3D(-0.900588, 0, -0.434673, 0, 1, 0, 0.434673, 0, -0.900588, 1.6666, -6.7400, -102.7855)
+
+[node name="Rock01Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_14")
+transform = Transform3D(0.882718, 0, -0.469904, 0, 1, 0, 0.469904, 0, 0.882718, 143.4370, -3.0331, 76.2086)
+
+[node name="Rock01Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_15")
+transform = Transform3D(0.882718, 0, -0.469904, 0, 1, 0, 0.469904, 0, 0.882718, 143.4370, -3.0331, 76.2086)
+
+[node name="Rock02Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_16")
+transform = Transform3D(0.996704, 0, -0.081127, 0, 1, 0, 0.081127, 0, 0.996704, 85.4707, 1.8827, 61.4600)
+
+[node name="Rock02Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_17")
+transform = Transform3D(0.996704, 0, -0.081127, 0, 1, 0, 0.081127, 0, 0.996704, 85.4707, 1.8827, 61.4600)
+
+[node name="Rock03Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_18")
+transform = Transform3D(-0.800309, 0, -0.599587, 0, 1, 0, 0.599587, 0, -0.800309, 23.1819, 0.9538, -30.7032)
+
+[node name="Rock03Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_19")
+transform = Transform3D(-0.800309, 0, -0.599587, 0, 1, 0, 0.599587, 0, -0.800309, 23.1819, 0.9538, -30.7032)
+
+[node name="Rock04Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_20")
+transform = Transform3D(-0.647525, 0, -0.762045, 0, 1, 0, 0.762045, 0, -0.647525, -125.5996, -5.3666, -0.5843)
+
+[node name="Rock04Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_21")
+transform = Transform3D(-0.647525, 0, -0.762045, 0, 1, 0, 0.762045, 0, -0.647525, -125.5996, -5.3666, -0.5843)
+
+[node name="Rock05Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_22")
+transform = Transform3D(-0.204607, 0, -0.978844, 0, 1, 0, 0.978844, 0, -0.204607, 7.7756, -13.4804, 142.8349)
+
+[node name="Rock05Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_23")
+transform = Transform3D(-0.204607, 0, -0.978844, 0, 1, 0, 0.978844, 0, -0.204607, 7.7756, -13.4804, 142.8349)
+
+[node name="Rock06Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_24")
+transform = Transform3D(-0.710155, 0, -0.704045, 0, 1, 0, 0.704045, 0, -0.710155, 165.8670, -15.5242, -17.9327)
+
+[node name="Rock06Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_25")
+transform = Transform3D(-0.710155, 0, -0.704045, 0, 1, 0, 0.704045, 0, -0.710155, 165.8670, -15.5242, -17.9327)
+
+[node name="Rock07Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_26")
+transform = Transform3D(0.956608, 0, -0.291377, 0, 1, 0, 0.291377, 0, 0.956608, 116.0176, 8.3225, -144.1693)
+
+[node name="Rock07Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_27")
+transform = Transform3D(0.956608, 0, -0.291377, 0, 1, 0, 0.291377, 0, 0.956608, 116.0176, 8.3225, -144.1693)
+
+[node name="Rock08Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_28")
+transform = Transform3D(0.936345, 0, -0.35108, 0, 1, 0, 0.35108, 0, 0.936345, -179.5548, 11.6274, 97.1669)
+
+[node name="Rock08Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_29")
+transform = Transform3D(0.936345, 0, -0.35108, 0, 1, 0, 0.35108, 0, 0.936345, -179.5548, 11.6274, 97.1669)
+
+[node name="Rock09Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_30")
+transform = Transform3D(0.439761, 0, -0.898115, 0, 1, 0, 0.898115, 0, 0.439761, 73.1617, 6.5226, 152.5336)
+
+[node name="Rock09Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_31")
+transform = Transform3D(0.439761, 0, -0.898115, 0, 1, 0, 0.898115, 0, 0.439761, 73.1617, 6.5226, 152.5336)
+
+[node name="Rock10Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_32")
+transform = Transform3D(0.92539, 0, -0.379015, 0, 1, 0, 0.379015, 0, 0.92539, 111.6198, -10.2878, 99.7019)
+
+[node name="Rock10Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_33")
+transform = Transform3D(0.92539, 0, -0.379015, 0, 1, 0, 0.379015, 0, 0.92539, 111.6198, -10.2878, 99.7019)
+
+[node name="Rock11Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_34")
+transform = Transform3D(0.086688, 0, -0.996236, 0, 1, 0, 0.996236, 0, 0.086688, -68.1533, 12.7061, -79.5579)
+
+[node name="Rock11Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_35")
+transform = Transform3D(0.086688, 0, -0.996236, 0, 1, 0, 0.996236, 0, 0.086688, -68.1533, 12.7061, -79.5579)
+
+[node name="Rock12Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_36")
+transform = Transform3D(0.664014, 0, -0.74772, 0, 1, 0, 0.74772, 0, 0.664014, -88.3513, -1.7165, 119.9735)
+
+[node name="Rock12Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_37")
+transform = Transform3D(0.664014, 0, -0.74772, 0, 1, 0, 0.74772, 0, 0.664014, -88.3513, -1.7165, 119.9735)
+
+[node name="Rock13Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_38")
+transform = Transform3D(0.490542, 0, -0.871418, 0, 1, 0, 0.871418, 0, 0.490542, 63.5141, 2.1855, -27.3562)
+
+[node name="Rock13Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_39")
+transform = Transform3D(0.490542, 0, -0.871418, 0, 1, 0, 0.871418, 0, 0.490542, 63.5141, 2.1855, -27.3562)
+
+[node name="Rock14Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_40")
+transform = Transform3D(-0.999583, 0, -0.028882, 0, 1, 0, 0.028882, 0, -0.999583, -114.2772, -1.5929, 4.9019)
+
+[node name="Rock14Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_41")
+transform = Transform3D(-0.999583, 0, -0.028882, 0, 1, 0, 0.028882, 0, -0.999583, -114.2772, -1.5929, 4.9019)
+
+[node name="Rock15Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_42")
+transform = Transform3D(-0.541264, 0, -0.840853, 0, 1, 0, 0.840853, 0, -0.541264, -74.5480, -16.0601, 16.7174)
+
+[node name="Rock15Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_43")
+transform = Transform3D(-0.541264, 0, -0.840853, 0, 1, 0, 0.840853, 0, -0.541264, -74.5480, -16.0601, 16.7174)
+
+[node name="Rock16Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_44")
+transform = Transform3D(0.98695, 0, -0.161029, 0, 1, 0, 0.161029, 0, 0.98695, 161.4256, 5.3090, 62.6778)
+
+[node name="Rock16Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_45")
+transform = Transform3D(0.98695, 0, -0.161029, 0, 1, 0, 0.161029, 0, 0.98695, 161.4256, 5.3090, 62.6778)
+
+[node name="Rock17Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_46")
+transform = Transform3D(0.651539, 0, -0.758615, 0, 1, 0, 0.758615, 0, 0.651539, -183.1816, -15.3222, -118.0967)
+
+[node name="Rock17Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_47")
+transform = Transform3D(0.651539, 0, -0.758615, 0, 1, 0, 0.758615, 0, 0.651539, -183.1816, -15.3222, -118.0967)
+
+[node name="Rock18Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_48")
+transform = Transform3D(0.515176, 0, -0.857084, 0, 1, 0, 0.857084, 0, 0.515176, -6.6666, -7.8634, -181.9017)
+
+[node name="Rock18Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_49")
+transform = Transform3D(0.515176, 0, -0.857084, 0, 1, 0, 0.857084, 0, 0.515176, -6.6666, -7.8634, -181.9017)
+
+[node name="Rock19Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_50")
+transform = Transform3D(0.726987, 0, -0.686651, 0, 1, 0, 0.686651, 0, 0.726987, -103.2086, -5.9125, -23.7445)
+
+[node name="Rock19Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_51")
+transform = Transform3D(0.726987, 0, -0.686651, 0, 1, 0, 0.686651, 0, 0.726987, -103.2086, -5.9125, -23.7445)
+
+[node name="Rock20Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_52")
+transform = Transform3D(-0.509544, 0, -0.860445, 0, 1, 0, 0.860445, 0, -0.509544, -49.5409, -13.4728, 135.4891)
+
+[node name="Rock20Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_53")
+transform = Transform3D(-0.509544, 0, -0.860445, 0, 1, 0, 0.860445, 0, -0.509544, -49.5409, -13.4728, 135.4891)
+
+[node name="Rock21Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_54")
+transform = Transform3D(-0.441771, 0, -0.897128, 0, 1, 0, 0.897128, 0, -0.441771, 124.5390, -9.7181, -169.5526)
+
+[node name="Rock21Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_55")
+transform = Transform3D(-0.441771, 0, -0.897128, 0, 1, 0, 0.897128, 0, -0.441771, 124.5390, -9.7181, -169.5526)
+
+[node name="Rock22Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_56")
+transform = Transform3D(-0.834454, 0, -0.551078, 0, 1, 0, 0.551078, 0, -0.834454, 146.9451, -9.1624, -22.9024)
+
+[node name="Rock22Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_57")
+transform = Transform3D(-0.834454, 0, -0.551078, 0, 1, 0, 0.551078, 0, -0.834454, 146.9451, -9.1624, -22.9024)
+
+[node name="Rock23Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_58")
+transform = Transform3D(0.799267, 0, -0.600976, 0, 1, 0, 0.600976, 0, 0.799267, 45.5822, -16.0310, 108.5687)
+
+[node name="Rock23Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_59")
+transform = Transform3D(0.799267, 0, -0.600976, 0, 1, 0, 0.600976, 0, 0.799267, 45.5822, -16.0310, 108.5687)
+
+[node name="Rock24Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_60")
+transform = Transform3D(-0.935575, 0, -0.353128, 0, 1, 0, 0.353128, 0, -0.935575, 56.8608, -5.8441, -17.6960)
+
+[node name="Rock24Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_61")
+transform = Transform3D(-0.935575, 0, -0.353128, 0, 1, 0, 0.353128, 0, -0.935575, 56.8608, -5.8441, -17.6960)
+
+[node name="Rock25Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_62")
+transform = Transform3D(-0.250418, 0, -0.968138, 0, 1, 0, 0.968138, 0, -0.250418, -107.9947, -1.9930, 55.3571)
+
+[node name="Rock25Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_63")
+transform = Transform3D(-0.250418, 0, -0.968138, 0, 1, 0, 0.968138, 0, -0.250418, -107.9947, -1.9930, 55.3571)
+
+[node name="Rock26Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_64")
+transform = Transform3D(0.678723, 0, -0.734395, 0, 1, 0, 0.734395, 0, 0.678723, -168.1522, 10.8590, 93.8531)
+
+[node name="Rock26Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_65")
+transform = Transform3D(0.678723, 0, -0.734395, 0, 1, 0, 0.734395, 0, 0.678723, -168.1522, 10.8590, 93.8531)
+
+[node name="Rock27Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_66")
+transform = Transform3D(-0.578978, 0, -0.815343, 0, 1, 0, 0.815343, 0, -0.578978, 12.0594, -11.4782, 133.0870)
+
+[node name="Rock27Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_67")
+transform = Transform3D(-0.578978, 0, -0.815343, 0, 1, 0, 0.815343, 0, -0.578978, 12.0594, -11.4782, 133.0870)
+
+[node name="Rock28Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_68")
+transform = Transform3D(0.649241, 0, -0.760582, 0, 1, 0, 0.760582, 0, 0.649241, 142.2037, 4.7496, 165.6644)
+
+[node name="Rock28Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_69")
+transform = Transform3D(0.649241, 0, -0.760582, 0, 1, 0, 0.760582, 0, 0.649241, 142.2037, 4.7496, 165.6644)
+
+[node name="Rock29Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_70")
+transform = Transform3D(-0.200213, 0, -0.979752, 0, 1, 0, 0.979752, 0, -0.200213, -154.7870, -4.1518, 115.4676)
+
+[node name="Rock29Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_71")
+transform = Transform3D(-0.200213, 0, -0.979752, 0, 1, 0, 0.979752, 0, -0.200213, -154.7870, -4.1518, 115.4676)
+
+[node name="Rock30Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_72")
+transform = Transform3D(-0.959506, 0, -0.281689, 0, 1, 0, 0.281689, 0, -0.959506, 119.1912, 2.4182, 152.1292)
+
+[node name="Rock30Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_73")
+transform = Transform3D(-0.959506, 0, -0.281689, 0, 1, 0, 0.281689, 0, -0.959506, 119.1912, 2.4182, 152.1292)
+
+[node name="Rock31Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_74")
+transform = Transform3D(0.376396, 0, -0.926459, 0, 1, 0, 0.926459, 0, 0.376396, 29.1015, 1.3022, -185.2743)
+
+[node name="Rock31Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_75")
+transform = Transform3D(0.376396, 0, -0.926459, 0, 1, 0, 0.926459, 0, 0.376396, 29.1015, 1.3022, -185.2743)
+
+[node name="Rock32Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_76")
+transform = Transform3D(-0.022828, 0, -0.999739, 0, 1, 0, 0.999739, 0, -0.022828, 148.1583, 6.9895, -41.3488)
+
+[node name="Rock32Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_77")
+transform = Transform3D(-0.022828, 0, -0.999739, 0, 1, 0, 0.999739, 0, -0.022828, 148.1583, 6.9895, -41.3488)
+
+[node name="Rock33Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_78")
+transform = Transform3D(0.970984, 0, -0.239145, 0, 1, 0, 0.239145, 0, 0.970984, -67.4639, -3.0839, 95.8868)
+
+[node name="Rock33Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_79")
+transform = Transform3D(0.970984, 0, -0.239145, 0, 1, 0, 0.239145, 0, 0.970984, -67.4639, -3.0839, 95.8868)
+
+[node name="Rock34Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_80")
+transform = Transform3D(0.19519, 0, -0.980766, 0, 1, 0, 0.980766, 0, 0.19519, 143.2873, 12.1989, 26.2448)
+
+[node name="Rock34Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_81")
+transform = Transform3D(0.19519, 0, -0.980766, 0, 1, 0, 0.980766, 0, 0.19519, 143.2873, 12.1989, 26.2448)
+
+[node name="Rock35Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_82")
+transform = Transform3D(-0.561899, 0, -0.827206, 0, 1, 0, 0.827206, 0, -0.561899, -65.9774, 0.3818, 153.9810)
+
+[node name="Rock35Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_83")
+transform = Transform3D(-0.561899, 0, -0.827206, 0, 1, 0, 0.827206, 0, -0.561899, -65.9774, 0.3818, 153.9810)
+
+[node name="Rock36Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_84")
+transform = Transform3D(-0.659293, 0, -0.751886, 0, 1, 0, 0.751886, 0, -0.659293, -82.3843, 11.5728, 81.5150)
+
+[node name="Rock36Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_85")
+transform = Transform3D(-0.659293, 0, -0.751886, 0, 1, 0, 0.751886, 0, -0.659293, -82.3843, 11.5728, 81.5150)
+
+[node name="Rock37Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_86")
+transform = Transform3D(0.297083, 0, -0.954852, 0, 1, 0, 0.954852, 0, 0.297083, 57.5502, -15.0217, 155.7701)
+
+[node name="Rock37Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_87")
+transform = Transform3D(0.297083, 0, -0.954852, 0, 1, 0, 0.954852, 0, 0.297083, 57.5502, -15.0217, 155.7701)
+
+[node name="Rock38Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_88")
+transform = Transform3D(-0.94187, 0, -0.335977, 0, 1, 0, 0.335977, 0, -0.94187, 88.8751, 13.9530, -158.6260)
+
+[node name="Rock38Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_89")
+transform = Transform3D(-0.94187, 0, -0.335977, 0, 1, 0, 0.335977, 0, -0.94187, 88.8751, 13.9530, -158.6260)
+
+[node name="Rock39Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_90")
+transform = Transform3D(0.595256, 0, -0.803536, 0, 1, 0, 0.803536, 0, 0.595256, 42.4713, -5.5309, 98.3280)
+
+[node name="Rock39Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_91")
+transform = Transform3D(0.595256, 0, -0.803536, 0, 1, 0, 0.803536, 0, 0.595256, 42.4713, -5.5309, 98.3280)
+
+[node name="Rock40Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_92")
+transform = Transform3D(-0.702747, 0, -0.71144, 0, 1, 0, 0.71144, 0, -0.702747, -124.2583, 11.4421, 130.9254)
+
+[node name="Rock40Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_93")
+transform = Transform3D(-0.702747, 0, -0.71144, 0, 1, 0, 0.71144, 0, -0.702747, -124.2583, 11.4421, 130.9254)
+
+[node name="Rock41Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_94")
+transform = Transform3D(-0.69229, 0, -0.721619, 0, 1, 0, 0.721619, 0, -0.69229, 103.9422, -13.5315, 39.3367)
+
+[node name="Rock41Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_95")
+transform = Transform3D(-0.69229, 0, -0.721619, 0, 1, 0, 0.721619, 0, -0.69229, 103.9422, -13.5315, 39.3367)
+
+[node name="Rock42Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_96")
+transform = Transform3D(0.746447, 0, -0.665445, 0, 1, 0, 0.665445, 0, 0.746447, 63.7141, 11.7040, 165.0152)
+
+[node name="Rock42Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_97")
+transform = Transform3D(0.746447, 0, -0.665445, 0, 1, 0, 0.665445, 0, 0.746447, 63.7141, 11.7040, 165.0152)
+
+[node name="Rock43Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_98")
+transform = Transform3D(0.958622, 0, -0.284683, 0, 1, 0, 0.284683, 0, 0.958622, 183.6435, -8.2109, 154.8778)
+
+[node name="Rock43Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_99")
+transform = Transform3D(0.958622, 0, -0.284683, 0, 1, 0, 0.284683, 0, 0.958622, 183.6435, -8.2109, 154.8778)
+
+[node name="Rock44Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_100")
+transform = Transform3D(-0.881264, 0, -0.472624, 0, 1, 0, 0.472624, 0, -0.881264, 143.8951, -10.2019, 178.2979)
+
+[node name="Rock44Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_101")
+transform = Transform3D(-0.881264, 0, -0.472624, 0, 1, 0, 0.472624, 0, -0.881264, 143.8951, -10.2019, 178.2979)
+
+[node name="Rock45Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_102")
+transform = Transform3D(0.071058, 0, -0.997472, 0, 1, 0, 0.997472, 0, 0.071058, -118.7237, -9.9378, 183.7820)
+
+[node name="Rock45Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_103")
+transform = Transform3D(0.071058, 0, -0.997472, 0, 1, 0, 0.997472, 0, 0.071058, -118.7237, -9.9378, 183.7820)
+
+[node name="Rock46Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_104")
+transform = Transform3D(-0.730857, 0, -0.68253, 0, 1, 0, 0.68253, 0, -0.730857, -3.8538, -0.4184, 68.2637)
+
+[node name="Rock46Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_105")
+transform = Transform3D(-0.730857, 0, -0.68253, 0, 1, 0, 0.68253, 0, -0.730857, -3.8538, -0.4184, 68.2637)
+
+[node name="Rock47Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_106")
+transform = Transform3D(-0.994637, 0, -0.103427, 0, 1, 0, 0.103427, 0, -0.994637, 98.8466, 5.8177, -5.2267)
+
+[node name="Rock47Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_107")
+transform = Transform3D(-0.994637, 0, -0.103427, 0, 1, 0, 0.103427, 0, -0.994637, 98.8466, 5.8177, -5.2267)
+
+[node name="Rock48Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_108")
+transform = Transform3D(0.965412, 0, -0.260727, 0, 1, 0, 0.260727, 0, 0.965412, -61.9107, 0.6872, 115.5562)
+
+[node name="Rock48Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_109")
+transform = Transform3D(0.965412, 0, -0.260727, 0, 1, 0, 0.260727, 0, 0.965412, -61.9107, 0.6872, 115.5562)
+
+[node name="Rock49Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_110")
+transform = Transform3D(0.674895, 0, -0.737914, 0, 1, 0, 0.737914, 0, 0.674895, -24.2929, -7.1398, -55.9821)
+
+[node name="Rock49Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_111")
+transform = Transform3D(0.674895, 0, -0.737914, 0, 1, 0, 0.737914, 0, 0.674895, -24.2929, -7.1398, -55.9821)
+
+[node name="Rock50Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_112")
+transform = Transform3D(0.84134, 0, -0.540507, 0, 1, 0, 0.540507, 0, 0.84134, 53.5260, -12.0871, -172.3309)
+
+[node name="Rock50Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_113")
+transform = Transform3D(0.84134, 0, -0.540507, 0, 1, 0, 0.540507, 0, 0.84134, 53.5260, -12.0871, -172.3309)
+
+[node name="Rock51Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_114")
+transform = Transform3D(0.23979, 0, -0.970825, 0, 1, 0, 0.970825, 0, 0.23979, 111.3833, -4.5157, 62.4842)
+
+[node name="Rock51Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_115")
+transform = Transform3D(0.23979, 0, -0.970825, 0, 1, 0, 0.970825, 0, 0.23979, 111.3833, -4.5157, 62.4842)
+
+[node name="Rock52Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_116")
+transform = Transform3D(0.738541, 0, -0.674209, 0, 1, 0, 0.674209, 0, 0.738541, 150.3136, 7.9785, -64.4830)
+
+[node name="Rock52Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_117")
+transform = Transform3D(0.738541, 0, -0.674209, 0, 1, 0, 0.674209, 0, 0.738541, 150.3136, 7.9785, -64.4830)
+
+[node name="Rock53Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_118")
+transform = Transform3D(-0.689843, 0, -0.723959, 0, 1, 0, 0.723959, 0, -0.689843, -67.9290, -3.3027, -134.0425)
+
+[node name="Rock53Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_119")
+transform = Transform3D(-0.689843, 0, -0.723959, 0, 1, 0, 0.723959, 0, -0.689843, -67.9290, -3.3027, -134.0425)
+
+[node name="Rock54Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_120")
+transform = Transform3D(0.139955, 0, -0.990158, 0, 1, 0, 0.990158, 0, 0.139955, -41.1520, -10.9173, -108.5522)
+
+[node name="Rock54Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_121")
+transform = Transform3D(0.139955, 0, -0.990158, 0, 1, 0, 0.990158, 0, 0.139955, -41.1520, -10.9173, -108.5522)
+
+[node name="Rock55Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_122")
+transform = Transform3D(-0.999315, 0, -0.037008, 0, 1, 0, 0.037008, 0, -0.999315, 51.4784, -7.3032, -119.2877)
+
+[node name="Rock55Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_123")
+transform = Transform3D(-0.999315, 0, -0.037008, 0, 1, 0, 0.037008, 0, -0.999315, 51.4784, -7.3032, -119.2877)
+
+[node name="Rock56Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_124")
+transform = Transform3D(-0.663597, 0, -0.74809, 0, 1, 0, 0.74809, 0, -0.663597, 112.4928, 13.9537, 116.1123)
+
+[node name="Rock56Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_125")
+transform = Transform3D(-0.663597, 0, -0.74809, 0, 1, 0, 0.74809, 0, -0.663597, 112.4928, 13.9537, 116.1123)
+
+[node name="Rock57Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_126")
+transform = Transform3D(-0.655441, 0, -0.755247, 0, 1, 0, 0.755247, 0, -0.655441, -169.1791, 12.6796, 150.4911)
+
+[node name="Rock57Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_127")
+transform = Transform3D(-0.655441, 0, -0.755247, 0, 1, 0, 0.755247, 0, -0.655441, -169.1791, 12.6796, 150.4911)
+
+[node name="Rock58Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_128")
+transform = Transform3D(-0.051472, 0, -0.998674, 0, 1, 0, 0.998674, 0, -0.051472, 166.2594, 13.8765, 159.1065)
+
+[node name="Rock58Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_129")
+transform = Transform3D(-0.051472, 0, -0.998674, 0, 1, 0, 0.998674, 0, -0.051472, 166.2594, 13.8765, 159.1065)
+
+[node name="Rock59Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_130")
+transform = Transform3D(-0.721557, 0, -0.692355, 0, 1, 0, 0.692355, 0, -0.721557, 154.3370, 8.7413, 153.7462)
+
+[node name="Rock59Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_131")
+transform = Transform3D(-0.721557, 0, -0.692355, 0, 1, 0, 0.692355, 0, -0.721557, 154.3370, 8.7413, 153.7462)
+
+[node name="Rock60Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_132")
+transform = Transform3D(0.032941, 0, -0.999457, 0, 1, 0, 0.999457, 0, 0.032941, -180.7041, 6.1913, -186.8408)
+
+[node name="Rock60Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_133")
+transform = Transform3D(0.032941, 0, -0.999457, 0, 1, 0, 0.999457, 0, 0.032941, -180.7041, 6.1913, -186.8408)
+
+[node name="Rock61Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_134")
+transform = Transform3D(-0.748369, 0, -0.663282, 0, 1, 0, 0.663282, 0, -0.748369, -153.7773, 11.8647, 157.7401)
+
+[node name="Rock61Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_135")
+transform = Transform3D(-0.748369, 0, -0.663282, 0, 1, 0, 0.663282, 0, -0.748369, -153.7773, 11.8647, 157.7401)
+
+[node name="Rock62Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_136")
+transform = Transform3D(0.708099, 0, -0.706113, 0, 1, 0, 0.706113, 0, 0.708099, -160.2976, -12.8195, 93.4262)
+
+[node name="Rock62Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_137")
+transform = Transform3D(0.708099, 0, -0.706113, 0, 1, 0, 0.706113, 0, 0.708099, -160.2976, -12.8195, 93.4262)
+
+[node name="Rock63Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_138")
+transform = Transform3D(0.964815, 0, -0.26293, 0, 1, 0, 0.26293, 0, 0.964815, 52.1191, 11.5924, 59.1233)
+
+[node name="Rock63Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_139")
+transform = Transform3D(0.964815, 0, -0.26293, 0, 1, 0, 0.26293, 0, 0.964815, 52.1191, 11.5924, 59.1233)
+
+[node name="Rock64Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_140")
+transform = Transform3D(0.402546, 0, -0.9154, 0, 1, 0, 0.9154, 0, 0.402546, -16.3012, 14.1363, -181.8793)
+
+[node name="Rock64Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_141")
+transform = Transform3D(0.402546, 0, -0.9154, 0, 1, 0, 0.9154, 0, 0.402546, -16.3012, 14.1363, -181.8793)
+
+[node name="Rock65Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_142")
+transform = Transform3D(-0.791122, 0, -0.611659, 0, 1, 0, 0.611659, 0, -0.791122, -157.2192, -14.3313, 80.9231)
+
+[node name="Rock65Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_143")
+transform = Transform3D(-0.791122, 0, -0.611659, 0, 1, 0, 0.611659, 0, -0.791122, -157.2192, -14.3313, 80.9231)
+
+[node name="Rock66Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_144")
+transform = Transform3D(-0.823527, 0, -0.567277, 0, 1, 0, 0.567277, 0, -0.823527, -114.3501, 7.4002, 5.8000)
+
+[node name="Rock66Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_145")
+transform = Transform3D(-0.823527, 0, -0.567277, 0, 1, 0, 0.567277, 0, -0.823527, -114.3501, 7.4002, 5.8000)
+
+[node name="Rock67Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_146")
+transform = Transform3D(-0.664573, 0, -0.747224, 0, 1, 0, 0.747224, 0, -0.664573, 53.5814, -15.4814, -5.8117)
+
+[node name="Rock67Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_147")
+transform = Transform3D(-0.664573, 0, -0.747224, 0, 1, 0, 0.747224, 0, -0.664573, 53.5814, -15.4814, -5.8117)
+
+[node name="Rock68Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_148")
+transform = Transform3D(-0.270662, 0, -0.962674, 0, 1, 0, 0.962674, 0, -0.270662, -108.4159, 9.0914, -19.5122)
+
+[node name="Rock68Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_149")
+transform = Transform3D(-0.270662, 0, -0.962674, 0, 1, 0, 0.962674, 0, -0.270662, -108.4159, 9.0914, -19.5122)
+
+[node name="Rock69Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_150")
+transform = Transform3D(-0.881338, 0, -0.472487, 0, 1, 0, 0.472487, 0, -0.881338, 108.5877, -11.6708, 21.7297)
+
+[node name="Rock69Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_151")
+transform = Transform3D(-0.881338, 0, -0.472487, 0, 1, 0, 0.472487, 0, -0.881338, 108.5877, -11.6708, 21.7297)

@@ -11,6 +11,11 @@ extends Node
 ##   Когда будешь готов — поставь 4 или 8: больше ничего менять не нужно,
 ##   Photon просто перестанет подсаживать игроков в заполненные комнаты.
 
+## Игра всегда стартует в фуллскрине. Выключить можно только в меню
+## («Настройки» → снять галочку) — значение помнится в user://settings.cfg.
+## F11 / Alt+Enter переключают режим на ходу (на время отладки).
+const SETTINGS_PATH := "user://settings.cfg"
+
 const NICK_DEFAULT := "Дайвер"
 const NICK_MAX := 16
 const CODE_LENGTH := 5
@@ -25,24 +30,88 @@ var nickname: String = NICK_DEFAULT
 var character_id: int = 0
 var room_code: String = ""        # код комнаты, если мы её создали (просто для показа)
 var last_notice: String = ""      # что показать в меню после выхода из матча
+## Полноэкранный режим. true — игра всегда в фуллскрине.
+var fullscreen: bool = true
 
 
 func _ready() -> void:
 	# Иначе два инстанса на одном ПК выдадут одинаковый код комнаты.
 	randomize()
-	# Фуллскрин (F11 / Alt+Enter) переключаем здесь: автолоад живёт всё
-	# время, поэтому сочетание работает и в меню, и в матче.
+	# Фуллскрин (F11 / Alt+Enter) и ESC переключаем здесь: автолоад живёт
+	# всё время, поэтому сочетания работают и в меню, и в матче.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_load_settings()
+	_apply_window_mode.call_deferred()
+
+
+# ---------- настройки (фуллскрин) ----------
+
+func _load_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_PATH) == OK:
+		fullscreen = bool(cfg.get_value("video", "fullscreen", true))
+
+
+func save_settings() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("video", "fullscreen", fullscreen)
+	var err := cfg.save(SETTINGS_PATH)
+	if err != OK:
+		push_warning("Session: не смог сохранить настройки (%d)." % err)
+
+
+func set_fullscreen(enabled: bool) -> void:
+	fullscreen = enabled
+	save_settings()
+	_apply_window_mode()
+
+
+func toggle_fullscreen() -> void:
+	set_fullscreen(not fullscreen)
+
+
+func _apply_window_mode() -> void:
+	var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+	if DisplayServer.window_get_mode() != mode:
+		DisplayServer.window_set_mode(mode)
 
 
 func _input(event: InputEvent) -> void:
-	if not event.is_action_pressed("toggle_fullscreen"):
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo:
+		# Проверяем и keycode, и physical_keycode: на разных раскладках
+		# они могут отличаться, а F11 должен работать всегда.
+		if KEY_F11 in [key.keycode, key.physical_keycode] \
+			or (key.alt_pressed and KEY_ENTER in [key.keycode, key.physical_keycode]):
+			get_viewport().set_input_as_handled()
+			toggle_fullscreen()
+			return
+		if key.keycode == KEY_ESCAPE or key.physical_keycode == KEY_ESCAPE:
+			_handle_escape()
+			return
+	if event.is_action_pressed("toggle_fullscreen"):
+		get_viewport().set_input_as_handled()
+		toggle_fullscreen()
 		return
-	get_viewport().set_input_as_handled()
-	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	if event.is_action_pressed("ui_cancel"):
+		_handle_escape()
+
+
+func _handle_escape() -> void:
+	## ESC: в матче — выход в меню, в лобби — отмена поиска. Держим здесь,
+	## потому что автолоад получает ввод всегда, даже если сцена его съела.
+	var tree := get_tree()
+	if tree == null:
+		return
+	var mm := tree.get_first_node_in_group("match_manager")
+	if mm != null:
+		get_viewport().set_input_as_handled()
+		mm.leave_to_menu()
+		return
+	var lobby := tree.get_first_node_in_group("lobby")
+	if lobby != null and lobby.has_method("cancel_search"):
+		get_viewport().set_input_as_handled()
+		lobby.cancel_search()
 
 
 static func sanitize_nick(raw: String) -> String:

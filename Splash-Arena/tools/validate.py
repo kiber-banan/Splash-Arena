@@ -144,7 +144,20 @@ ul = mnode("Main/UnderwaterLight")
 if "underwater_light.gd" not in script_of(mext, ul): fail("main.tscn: у UnderwaterLight нет скрипта")
 mnode("Main/UnderwaterLight/Sun"); mnode("Main/UnderwaterLight/WorldEnvironment")
 ar = mnode("Main/Arena")
-if "arena.gd" not in script_of(mext, ar): fail("main.tscn: у Arena нет скрипта arena.gd")
+if "arena.gd" not in script_of(mext, ar):
+    # Арена может быть инстансом scenes/world/arena.tscn — тогда её скрипт
+    # лежит внутри этой сцены и ищется в её собственных ext-ресурсах.
+    ok = False
+    inst_val = ar.get("instance", "") or ar.get("_attrs", {}).get("instance", "")
+    im = re.search(r'ExtResource\("([^"]+)"\)', inst_val)
+    inst_path = mext.get(im.group(1), {}).get("path", "") if im else ""
+    if inst_path.endswith("arena.tscn"):
+        _, aext, _, anodes, _ = parse_tscn(res_path(inst_path))
+        # Скрипт лежит на корневом узле самой сцены арены.
+        aroot = [v for k, v in anodes.items() if "/" not in k]
+        ok = bool(aroot) and "arena.gd" in script_of(aext, aroot[0])
+    if not ok:
+        fail("main.tscn: у Arena нет скрипта arena.gd")
 ws = mnode("Main/WaterSurface")
 if "mesh" not in ws or "surface_material_override/0" not in ws: fail("main.tscn: у WaterSurface нет mesh/материала")
 pc = mnode("Main/PreviewCamera")

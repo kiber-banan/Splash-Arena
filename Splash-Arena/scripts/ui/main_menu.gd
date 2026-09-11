@@ -56,6 +56,7 @@ func _ready() -> void:
 	tabs.set_tab_title(0, "Играть")
 	tabs.set_tab_title(1, "Персонаж")
 	tabs.set_tab_title(2, "Профиль")
+	_build_settings_tab()
 	nick_edit.text = Session.nickname
 	_build_character_cards()
 	_select_character(Session.character_id)
@@ -204,6 +205,47 @@ func _stop_search(message: String, color: Color) -> void:
 
 
 # ---------- классы ----------
+
+func _build_settings_tab() -> void:
+	## Вкладка «Настройки»: пока только полноэкранный режим. Значение
+	## живёт в Session и сохраняется в user://settings.cfg.
+	var page := Control.new()
+	page.name = "Settings"
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = 24.0
+	box.offset_top = 24.0
+	box.offset_right = -24.0
+	box.offset_bottom = -24.0
+	box.add_theme_constant_override("separation", 12)
+	page.add_child(box)
+
+	var title := Label.new()
+	title.text = "Настройки"
+	title.add_theme_font_size_override("font_size", 28)
+	box.add_child(title)
+
+	var fullscreen_box := CheckBox.new()
+	fullscreen_box.text = "Полноэкранный режим"
+	fullscreen_box.button_pressed = Session.fullscreen
+	fullscreen_box.toggled.connect(func(enabled: bool) -> void:
+		Session.set_fullscreen(enabled)
+	)
+	box.add_child(fullscreen_box)
+
+	var hint := Label.new()
+	hint.text = (
+		"Игра запускается в фуллскрине. Сними галочку — окно станет обычным,\n"
+		+ "настройка запомнится. F11 / Alt+Enter переключают режим на ходу.\n"
+		+ "ESC — выход из матча в меню (в лобби — отмена поиска)."
+	)
+	hint.add_theme_color_override("font_color", Color(0.72, 0.8, 0.88))
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(hint)
+
+	tabs.add_child(page)
+	tabs.set_tab_title(tabs.get_tab_count() - 1, "Настройки")
+
 
 func _build_character_cards() -> void:
 	for child in cards_row.get_children():

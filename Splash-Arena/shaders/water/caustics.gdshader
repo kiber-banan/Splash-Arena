@@ -11,7 +11,7 @@ uniform vec3 caustic_color : source_color = vec3(0.65, 0.95, 1.0);
 uniform float caustic_scale : hint_range(0.02, 1.0) = 0.20;
 uniform float caustic_speed : hint_range(0.0, 1.0) = 0.28;
 uniform float caustic_strength : hint_range(0.0, 3.0) = 1.1;
-uniform float caustic_fade_radius : hint_range(5.0, 120.0) = 34.0;
+uniform float caustic_fade_radius : hint_range(5.0, 500.0) = 260.0;
 
 varying vec3 world_pos;
 

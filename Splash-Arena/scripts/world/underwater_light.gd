@@ -17,7 +17,7 @@ func _apply_underwater_look() -> void:
 		# Голубоватый туман — глубина воды.
 		world_env.environment.fog_enabled = true
 		world_env.environment.fog_light_color = Color(0.14, 0.42, 0.52)
-		world_env.environment.fog_density = 0.028
+		world_env.environment.fog_density = 0.0035
 		# Лёгкая гамма-коррекция (смотрим из-под воды).
 		world_env.environment.adjustment_enabled = true
 		world_env.environment.adjustment_brightness = 1.18

@@ -39,6 +39,11 @@ const SPAWN_REQUEST_ATTEMPTS := 4
 ## проекта назначение после spawn() тоже работает, но иногда применяется
 ## не сразу — переспрашиваем, пока get_input_authority() не совпадёт.
 const AUTHORITY_RETRY_SEC := [0.1, 0.6, 1.8]
+## Через сколько секунд хост спавнит, даже если кто-то не ответил «арена готова».
+const ARENA_WAIT_TIMEOUT := 10.0
+## Повторы сообщения «я в арене»: RPC не сохраняются, поэтому на всякий
+## случай шлём несколько раз.
+const ARENA_READY_REPEATS := [0.4, 1.3, 3.0]
 ## Как часто клиент проверяет, есть ли у его аватара input authority.
 const AUTHORITY_CHECK_SEC := 2.0
 const AUTHORITY_CHECK_ATTEMPTS := 6
@@ -46,6 +51,11 @@ const AUTHORITY_CHECK_ATTEMPTS := 6
 @onready var spawner: FusionSpawner = $FusionSpawner
 
 var _spawned_for: Dictionary = {}  # player_id -> Player
+## pid -> true: пир уже загрузил арену и готов принять спавн.
+var _arena_ready: Dictionary = {}
+## pid -> character_id: кто просил спавн, но ещё не заспавнен.
+var _spawn_requests: Dictionary = {}
+var _arena_wait_start_msec := 0
 var _authority_check_left := AUTHORITY_CHECK_SEC
 var _authority_checks_left := AUTHORITY_CHECK_ATTEMPTS
 var _roster: Dictionary = {}       # player_id -> {"nick": String, "char": int}
@@ -139,9 +149,12 @@ func _on_room_joined() -> void:
 		% [str(Fusion.is_master_client()), Fusion.get_local_player_id()])
 	_roster.clear()
 	_announce_self()
+	# Сообщаем: «я в арене, спавнер готов». Без этого хост мог бы
+	# заспавнить аватар, пока мы ещё в лобби, — а спавн не сохраняется,
+	# и клиент остался бы с нулём аватаров навсегда.
+	_announce_arena_ready()
 	if Fusion.is_master_client():
-		# Хост (сервер) спавнит собственного игрока.
-		_spawn_player(Fusion.get_local_player_id(), Session.character_id)
+		_spawn_pending()
 	else:
 		# Клиент просит сервер заспавнить его (broadcast-RPC).
 		Fusion.rpc(request_spawn, Session.character_id)
@@ -172,6 +185,92 @@ func leave_to_menu() -> void:
 	get_tree().change_scene_to_file(MENU_SCENE)
 
 
+# ---------- рукопожатие «арена готова» ----------
+#
+# Спавн — событие, а не состояние: если объект создан, пока клиент ещё
+# в лобби (там нет FusionSpawner), клиент его НЕ получит и не догонит
+# потом. Поэтому хост спавнит только тех, кто явно сообщил, что арена
+# у него загружена и спавнер зарегистрирован.
+
+func _announce_arena_ready() -> void:
+	var pid := Fusion.get_local_player_id()
+	_arena_ready[pid] = true
+	if Fusion.is_in_room():
+		Fusion.rpc(arena_ready, pid)
+	_announce_arena_ready_repeats()
+
+
+func _announce_arena_ready_repeats() -> void:
+	for wait in ARENA_READY_REPEATS:
+		await get_tree().create_timer(wait).timeout
+		if not is_instance_valid(self) or not Fusion.is_in_room():
+			return
+		if get_tree().get_first_node_in_group(Player.GROUP_LOCAL_PLAYER) != null:
+			return  # уже заспавнились — хватит
+		Fusion.rpc(arena_ready, Fusion.get_local_player_id())
+		if Fusion.is_master_client():
+			_spawn_pending()
+
+
+@rpc("any_peer", "call_local")
+func arena_ready(player_id: int) -> void:
+	var is_new := not _arena_ready.has(player_id)
+	_arena_ready[player_id] = true
+	if is_new:
+		print("MatchManager: пир pid=%d загрузил арену" % player_id)
+	if Fusion.is_master_client():
+		_spawn_pending()
+
+
+func _known_peers() -> Array:
+	## Все пиры, которых мы знаем (кроме себя): из ростера и из запросов.
+	var out: Array = []
+	for pid in _roster.keys():
+		var p := int(pid)
+		if p not in out:
+			out.append(p)
+	for pid in _spawn_requests.keys():
+		var q := int(pid)
+		if q not in out:
+			out.append(q)
+	return out
+
+
+func _spawn_pending() -> void:
+	## Хост спавнит всех, кто уже в арене. Ждём остальных — иначе их
+	## аватары будут созданы на хосте, но потеряны на клиенте.
+	if not Fusion.is_master_client() or not Fusion.is_in_room():
+		return
+	if _arena_wait_start_msec == 0:
+		_arena_wait_start_msec = Time.get_ticks_msec()
+	var waited := (Time.get_ticks_msec() - _arena_wait_start_msec) / 1000.0
+	for pid in _known_peers():
+		if not _arena_ready.has(pid) and waited < ARENA_WAIT_TIMEOUT:
+			return
+	var my_id := Fusion.get_local_player_id()
+	if not _spawned_for.has(my_id):
+		_spawn_player(my_id, Session.character_id)
+	for pid in _spawn_requests.keys():
+		var p := int(pid)
+		if not _spawned_for.has(p):
+			_spawn_player(p, int(_spawn_requests[p]))
+
+
+func _respawn(player_id: int) -> void:
+	## Клиент пишет, что у него нет аватара (спавн потерялся) — удаляем
+	## старый объект и создаём новый, раз уж спавн не сохраняется.
+	if not Fusion.is_master_client():
+		return
+	var old := _spawned_for.get(player_id)
+	if old != null and is_instance_valid(old) and spawner.has_method("despawn"):
+		spawner.despawn(old)
+		_spawned_for.erase(player_id)
+		print("MatchManager: пересоздаю аватар pid=%d — клиент его не получил" % player_id)
+		_spawn_pending()
+		return
+	push_warning("MatchManager: не могу пересоздать аватар pid=%d (нет spawner.despawn())" % player_id)
+
+
 func _retry_spawn_request() -> void:
 	# Повторяем запрос, пока хост не ответит спавном: RPC не сохраняются,
 	# поэтому «запрос улетел в никуда» — частая причина пустого мира.
@@ -185,7 +284,33 @@ func _retry_spawn_request() -> void:
 		if get_tree().get_first_node_in_group(Player.GROUP_LOCAL_PLAYER) != null:
 			return
 		print("MatchManager: повторяю запрос спавна (попытка %d)" % (attempt + 2))
-		Fusion.rpc(request_spawn, Session.character_id)
+		Fusion.rpc(request_spawn, Session.character_id, true)
+	# Ничего не помогло — печатаем состояние спавнера: по нему видно,
+	# почему объекты не долетают.
+	_debug_dump_spawner_state()
+
+
+func _debug_dump_spawner_state() -> void:
+	print("MatchManager: === диагностика: аватара так и нет ===")
+	print("  pid=%d  мастер=%s  в комнате=%s"
+		% [Fusion.get_local_player_id(), str(Fusion.is_master_client()), str(Fusion.is_in_room())])
+	print("  аватаров в дереве=%d  готовые пиры=%s  запросы=%s"
+		% [
+			get_tree().get_nodes_in_group(Player.GROUP_ALL).size(),
+			str(_arena_ready.keys()),
+			str(_spawn_requests.keys()),
+		])
+	var room := Fusion.get_room()
+	if room != null:
+		if room.has_method("get_player_count"):
+			print("  игроков в комнате=%d" % int(room.get_player_count()))
+		if room.has_method("get_room_name"):
+			print("  комната=%s" % str(room.get_room_name()))
+	for d in spawner.get_property_list():
+		var pname := String(d.get("name", ""))
+		if pname.begins_with("_") or pname in ["script", "metadata"]:
+			continue
+		print("  spawner.%s = %s" % [pname, str(spawner.get(pname))])
 
 
 # ---------- список игроков (ники) ----------
@@ -337,12 +462,21 @@ func _debug_dump_avatars() -> void:
 # ---------- спавн ----------
 
 @rpc("any_peer", "call_local")
-func request_spawn(character_id: int) -> void:
+func request_spawn(character_id: int, missing_avatar: bool = false) -> void:
 	# Вызывается на сервере (и локально у отправителя — call_local).
 	# Спавнит только master client.
 	if not Fusion.is_master_client():
 		return
-	_spawn_player(Fusion.get_rpc_sender(), character_id)
+	var pid := Fusion.get_rpc_sender()
+	if pid <= 0:
+		return
+	_spawn_requests[pid] = character_id
+	# Раз пир прислал запрос — его арена уже загружена.
+	_arena_ready[pid] = true
+	if missing_avatar and _spawned_for.has(pid):
+		_respawn(pid)
+		return
+	_spawn_pending()
 
 
 func _on_player_left(player_id: int, is_inactive: bool) -> void:
