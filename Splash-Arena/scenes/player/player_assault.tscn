@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="1_base"]
+
+[node name="Player" instance=ExtResource("1_base")]
+character_id = 0
+character_name = "Штурмовик"
+move_speed = 3.2
+max_hp = 100
+suit_color = Color(1, 0.45, 0.12, 1)
+ability_name = "Рывок"
+ability_cooldown = 5.0
+ability_duration = 0.25
+ability_speed_multiplier = 3.0
+ability_heal = 0

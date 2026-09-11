@@ -1,6 +1,131 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_menu"]
+
+[sub_resource type="StyleBoxFlat" id="sb_panel"]
+bg_color = Color(0.043, 0.086, 0.125, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.11, 0.25, 0.33, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_status"]
+bg_color = Color(0.039, 0.086, 0.125, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.11, 0.25, 0.33, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 14
+content_margin_top = 10
+content_margin_right = 14
+content_margin_bottom = 10
+
+[sub_resource type="StyleBoxFlat" id="sb_tab_selected"]
+bg_color = Color(0.098, 0.329, 0.439, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+content_margin_left = 20
+content_margin_top = 10
+content_margin_right = 20
+content_margin_bottom = 10
+
+[sub_resource type="StyleBoxFlat" id="sb_tab_unselected"]
+bg_color = Color(0.051, 0.102, 0.145, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+content_margin_left = 20
+content_margin_top = 10
+content_margin_right = 20
+content_margin_bottom = 10
+
+[sub_resource type="StyleBoxFlat" id="sb_card"]
+bg_color = Color(0.055, 0.102, 0.145, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.11, 0.243, 0.318, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 16
+content_margin_top = 14
+content_margin_right = 16
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_card_active"]
+bg_color = Color(0.071, 0.243, 0.325, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.302, 0.886, 1, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 16
+content_margin_top = 14
+content_margin_right = 16
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_accent"]
+bg_color = Color(0.063, 0.467, 0.639, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 16
+content_margin_top = 12
+content_margin_right = 16
+content_margin_bottom = 12
+
+[sub_resource type="StyleBoxFlat" id="sb_accent_hover"]
+bg_color = Color(0.098, 0.616, 0.82, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 16
+content_margin_top = 12
+content_margin_right = 16
+content_margin_bottom = 12
+
+[sub_resource type="StyleBoxFlat" id="sb_accent_pressed"]
+bg_color = Color(0.035, 0.318, 0.451, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 16
+content_margin_top = 12
+content_margin_right = 16
+content_margin_bottom = 12
+
+[sub_resource type="StyleBoxFlat" id="sb_bar_bg"]
+bg_color = Color(0.051, 0.102, 0.145, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_bar_fill"]
+bg_color = Color(0.302, 0.886, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [node name="MainMenu" type="Control"]
 anchors_preset = 15
@@ -10,35 +135,181 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Background" type="ColorRect" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+color = Color(0.027, 0.055, 0.078, 1)
 
-[node name="VBox" type="VBoxContainer" parent="Center"]
-alignment = 1
+[node name="Root" type="MarginContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 26
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 20
+
+[node name="Shell" type="VBoxContainer" parent="Root"]
+theme_override_constants/separation = 14
+
+[node name="Header" type="HBoxContainer" parent="Root/Shell"]
+
+[node name="TitleBox" type="VBoxContainer" parent="Root/Shell/Header"]
+theme_override_constants/separation = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="Root/Shell/Header/TitleBox"]
+theme_override_colors/font_color = Color(0.925, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 42
+text = "SPLASH ARENA"
+
+[node name="Subtitle" type="Label" parent="Root/Shell/Header/TitleBox"]
+theme_override_colors/font_color = Color(0.451, 0.718, 0.839, 1)
+theme_override_font_sizes/font_size = 16
+text = "подводный шутер • Godot 4.7 + Photon Fusion 3"
+
+[node name="RegionLabel" type="Label" parent="Root/Shell/Header"]
+theme_override_colors/font_color = Color(0.451, 0.718, 0.839, 1)
+theme_override_font_sizes/font_size = 14
+text = "Photon Cloud • EU"
+vertical_alignment = 1
+
+[node name="Tabs" type="TabContainer" parent="Root/Shell"]
+unique_name_in_owner = true
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("sb_panel")
+theme_override_styles/tab_selected = SubResource("sb_tab_selected")
+theme_override_styles/tab_unselected = SubResource("sb_tab_unselected")
+theme_override_colors/font_selected_color = Color(0.96, 0.99, 1, 1)
+theme_override_colors/font_unselected_color = Color(0.451, 0.62, 0.72, 1)
+theme_override_font_sizes/font_size = 18
+
+[node name="Play" type="MarginContainer" parent="Root/Shell/Tabs"]
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="PlayBox" type="VBoxContainer" parent="Root/Shell/Tabs/Play"]
 theme_override_constants/separation = 12
 
-[node name="TitleLabel" type="Label" parent="Center/VBox"]
-theme_override_font_sizes/font_size = 64
-text = "SPLASH ARENA"
-horizontal_alignment = 1
-
-[node name="SubLabel" type="Label" parent="Center/VBox"]
-theme_override_font_sizes/font_size = 20
-text = "подводный шутер • Godot + Photon Fusion"
-horizontal_alignment = 1
-
-[node name="PlayButton" type="Button" parent="Center/VBox"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 56)
+[node name="PlayTitle" type="Label" parent="Root/Shell/Tabs/Play/PlayBox"]
+theme_override_colors/font_color = Color(0.925, 0.98, 1, 1)
 theme_override_font_sizes/font_size = 28
-text = "Играть"
+text = "Быстрый матч"
 
-[node name="StatusLabel" type="Label" parent="Center/VBox"]
+[node name="PlayHint" type="Label" parent="Root/Shell/Tabs/Play/PlayBox"]
+theme_override_colors/font_color = Color(0.549, 0.702, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "1 на 1 • арена «Подводная пещера» • все против всех"
+
+[node name="SearchBar" type="ProgressBar" parent="Root/Shell/Tabs/Play/PlayBox"]
 unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 12)
+show_percentage = false
+theme_override_styles/background = SubResource("sb_bar_bg")
+theme_override_styles/fill = SubResource("sb_bar_fill")
+
+[node name="FindButton" type="Button" parent="Root/Shell/Tabs/Play/PlayBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 68)
+theme_override_styles/normal = SubResource("sb_accent")
+theme_override_styles/hover = SubResource("sb_accent_hover")
+theme_override_styles/pressed = SubResource("sb_accent_pressed")
+theme_override_font_sizes/font_size = 24
+text = "НАЙТИ МАТЧ"
+
+[node name="SearchStatus" type="Label" parent="Root/Shell/Tabs/Play/PlayBox"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.749, 0.878, 0.949, 1)
+theme_override_font_sizes/font_size = 16
+text = ""
+horizontal_alignment = 1
+
+[node name="Hero" type="MarginContainer" parent="Root/Shell/Tabs"]
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="HeroBox" type="VBoxContainer" parent="Root/Shell/Tabs/Hero"]
+theme_override_constants/separation = 12
+
+[node name="HeroHint" type="Label" parent="Root/Shell/Tabs/Hero/HeroBox"]
+theme_override_colors/font_color = Color(0.549, 0.702, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "Оружие у всех одно — гарпун. Класс меняет HP, скорость и способность на E."
+autowrap_mode = 3
+
+[node name="CardsRow" type="HBoxContainer" parent="Root/Shell/Tabs/Hero/HeroBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 180)
+theme_override_constants/separation = 14
+
+[node name="HeroInfo" type="Label" parent="Root/Shell/Tabs/Hero/HeroBox"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.82, 0.92, 0.98, 1)
+theme_override_font_sizes/font_size = 17
+text = ""
+autowrap_mode = 3
+
+[node name="Profile" type="MarginContainer" parent="Root/Shell/Tabs"]
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="ProfileBox" type="VBoxContainer" parent="Root/Shell/Tabs/Profile"]
+theme_override_constants/separation = 12
+
+[node name="NickRow" type="HBoxContainer" parent="Root/Shell/Tabs/Profile/ProfileBox"]
+theme_override_constants/separation = 12
+
+[node name="NickLabel" type="Label" parent="Root/Shell/Tabs/Profile/ProfileBox/NickRow"]
+custom_minimum_size = Vector2(90, 44)
+theme_override_colors/font_color = Color(0.82, 0.92, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "Ник:"
+vertical_alignment = 1
+
+[node name="NickEdit" type="LineEdit" parent="Root/Shell/Tabs/Profile/ProfileBox/NickRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 44)
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "Дайвер"
+max_length = 16
+
+[node name="DiagLabel" type="Label" parent="Root/Shell/Tabs/Profile/ProfileBox"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.549, 0.72, 0.82, 1)
+theme_override_font_sizes/font_size = 15
+text = "..."
+
+[node name="StatusPanel" type="PanelContainer" parent="Root/Shell"]
+theme_override_styles/panel = SubResource("sb_status")
+
+[node name="StatusMargin" type="MarginContainer" parent="Root/Shell/StatusPanel"]
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="StatusLabel" type="Label" parent="Root/Shell/StatusPanel/StatusMargin"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.8, 0.925, 1, 1)
 theme_override_font_sizes/font_size = 16
 text = "..."
+autowrap_mode = 3
+
+[node name="Footer" type="Label" parent="Root/Shell"]
+theme_override_colors/font_color = Color(0.4, 0.549, 0.647, 1)
+theme_override_font_sizes/font_size = 13
+text = "WASD — плыть • Space / Ctrl — вверх / вниз • ЛКМ — гарпун • E — способность • F11 — фуллскрин • ESC — выход из матча"
 horizontal_alignment = 1

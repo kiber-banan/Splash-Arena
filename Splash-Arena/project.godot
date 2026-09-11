@@ -11,19 +11,26 @@ config_version=5
 [application]
 
 config/name="Splash Arena"
-run/main_scene="res://scenes/main/main.tscn"
+run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
 
 [autoload]
 
 AppConfig="*res://autoload/app_config.gd"
+Session="*res://autoload/session.gd"
 Inputs="*res://autoload/inputs.gd"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/size/window_width_override=1600
+window/size/window_height_override=900
+; Фуллскрин: интерфейс тянется вместе с разрешением (canvas_items),
+; а при другом соотношении сторон картинка расширяется, а не сплющивается.
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [fusion]
 

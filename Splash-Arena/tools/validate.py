@@ -87,6 +87,43 @@ def check_tscn(rel: str):
 main = check_tscn("scenes/main/main.tscn")
 player = check_tscn("scenes/player/player.tscn")
 menu = check_tscn("scenes/ui/main_menu.tscn")
+hud = check_tscn("scenes/ui/hud.tscn")
+
+# ---------- 1b. Разворот вложенных сцен (instance=...) ----------
+# Скрипт на узле Main/HUD ссылается на %DebugLabel, который живёт внутри
+# hud.tscn. Чтобы такие ссылки проверялись, склеиваем дерево сцены
+# с деревьями всех её instance-подсцен.
+SCENE_CACHE: dict = {}
+
+def scene_nodes(rel: str, depth: int = 0) -> dict:
+    if rel in SCENE_CACHE:
+        return SCENE_CACHE[rel]
+    SCENE_CACHE[rel] = {}  # защита от циклического instance
+    _, exts, _, nodes, _ = parse_tscn(ROOT / rel)
+    out = dict(nodes)
+    if depth < 4:
+        for path, node in list(nodes.items()):
+            m = re.search(r'ExtResource[(]"([^"]+)"[)]', node.get("_attrs", {}).get("instance", ""))
+            if not m:
+                continue
+            sub = exts.get(m.group(1), {}).get("path", "")
+            if not sub.startswith("res://"):
+                continue
+            for sp, sn in scene_nodes(sub[len("res://"):], depth + 1).items():
+                if "/" in sp:
+                    out[path + "/" + sp.split("/", 1)[1]] = sn
+                else:
+                    merged = dict(sn)
+                    for k, v in node.items():
+                        if k != "_path":
+                            merged[k] = v
+                    out[path] = merged
+    SCENE_CACHE[rel] = out
+    return out
+
+mexp = scene_nodes("scenes/main/main.tscn")
+pexp = scene_nodes("scenes/player/player.tscn")
+uexp = scene_nodes("scenes/ui/main_menu.tscn")
 
 def script_of(exts, node: dict) -> str:
     mm_ = re.search(r'ExtResource\("([^"]+)"\)', node.get("script", ""))
@@ -107,7 +144,20 @@ ul = mnode("Main/UnderwaterLight")
 if "underwater_light.gd" not in script_of(mext, ul): fail("main.tscn: у UnderwaterLight нет скрипта")
 mnode("Main/UnderwaterLight/Sun"); mnode("Main/UnderwaterLight/WorldEnvironment")
 ar = mnode("Main/Arena")
-if "arena.gd" not in script_of(mext, ar): fail("main.tscn: у Arena нет скрипта arena.gd")
+if "arena.gd" not in script_of(mext, ar):
+    # Арена может быть инстансом scenes/world/arena.tscn — тогда её скрипт
+    # лежит внутри этой сцены и ищется в её собственных ext-ресурсах.
+    ok = False
+    inst_val = ar.get("instance", "") or ar.get("_attrs", {}).get("instance", "")
+    im = re.search(r'ExtResource\("([^"]+)"\)', inst_val)
+    inst_path = mext.get(im.group(1), {}).get("path", "") if im else ""
+    if inst_path.endswith("arena.tscn"):
+        _, aext, _, anodes, _ = parse_tscn(res_path(inst_path))
+        # Скрипт лежит на корневом узле самой сцены арены.
+        aroot = [v for k, v in anodes.items() if "/" not in k]
+        ok = bool(aroot) and "arena.gd" in script_of(aext, aroot[0])
+    if not ok:
+        fail("main.tscn: у Arena нет скрипта arena.gd")
 ws = mnode("Main/WaterSurface")
 if "mesh" not in ws or "surface_material_override/0" not in ws: fail("main.tscn: у WaterSurface нет mesh/материала")
 pc = mnode("Main/PreviewCamera")
@@ -131,20 +181,122 @@ _, _, _, u = menu
 def unode(x):
     if x not in u: fail(f"main_menu.tscn: нет узла {x}")
     return u.get(x, {})
-pb = unode("MainMenu/Center/VBox/PlayButton")
-sl = unode("MainMenu/Center/VBox/StatusLabel")
-for nm, nd in (("PlayButton", pb), ("StatusLabel", sl)):
-    if nd.get("unique_name_in_owner") != "true":
-        fail(f"main_menu.tscn: {nm} без unique_name_in_owner")
+MENU_UNIQUE = {
+    "StatusLabel": "MainMenu/Root/Shell/StatusPanel/StatusMargin/StatusLabel",
+    "Tabs": "MainMenu/Root/Shell/Tabs",
+    "FindButton": "MainMenu/Root/Shell/Tabs/Play/PlayBox/FindButton",
+    "SearchBar": "MainMenu/Root/Shell/Tabs/Play/PlayBox/SearchBar",
+    "SearchStatus": "MainMenu/Root/Shell/Tabs/Play/PlayBox/SearchStatus",
+    "CardsRow": "MainMenu/Root/Shell/Tabs/Hero/HeroBox/CardsRow",
+    "HeroInfo": "MainMenu/Root/Shell/Tabs/Hero/HeroBox/HeroInfo",
+    "NickEdit": "MainMenu/Root/Shell/Tabs/Profile/ProfileBox/NickRow/NickEdit",
+    "DiagLabel": "MainMenu/Root/Shell/Tabs/Profile/ProfileBox/DiagLabel",
+}
+for nm, path in MENU_UNIQUE.items():
+    if unode(path).get("unique_name_in_owner") != "true":
+        fail(f"main_menu.tscn: {nm} ({path}) без unique_name_in_owner")
+# вкладки: Играть / Персонаж / Профиль
+for tab in ("Play", "Hero", "Profile"):
+    if not any(k.startswith("MainMenu/Root/Shell/Tabs/" + tab) for k in u):
+        fail(f"main_menu.tscn: нет вкладки {tab}")
+
+# ---------- 2b. Персонажи (3 сцены-наследника player.tscn) ----------
+CHARACTER_SCENES = {
+    "Штурмовик": "scenes/player/player_assault.tscn",
+    "Медик": "scenes/player/player_medic.tscn",
+    "Разведчик": "scenes/player/player_scout.tscn",
+}
+CHARACTER_IDS = []
+for cname, crel in CHARACTER_SCENES.items():
+    if not (ROOT / crel).exists():
+        fail(f"нет сцены персонажа {crel}")
+        continue
+    _, cexts, _, cnodes = check_tscn(crel)
+    croots = [k for k in cnodes if "/" not in k]
+    if len(croots) != 1:
+        fail(f"{crel}: ожидался один корневой узел")
+        continue
+    cnode = cnodes[croots[0]]
+    minst = re.search(r'ExtResource[(]"([^"]+)"[)]', cnode.get("_attrs", {}).get("instance", ""))
+    base_scene = cexts.get(minst.group(1), {}).get("path", "") if minst else ""
+    if base_scene != "res://scenes/player/player.tscn":
+        fail(f"{crel}: корень должен наследоваться от scenes/player/player.tscn, а не {base_scene}")
+    for prop in ("character_id", "character_name", "max_hp", "move_speed", "suit_color", "ability_name", "ability_cooldown"):
+        if prop not in cnode:
+            fail(f"{crel}: не переопределён экспорт {prop}")
+    if "character_id" in cnode:
+        CHARACTER_IDS.append(int(cnode["character_id"]))
+if sorted(CHARACTER_IDS) != [0, 1, 2]:
+    fail(f"character_id у персонажей должны быть 0,1,2 — получено {sorted(CHARACTER_IDS)}")
+
+hud_in_main = mnode("Main/HUD")
+if 'ExtResource("5_hud")' not in hud_in_main.get("_attrs", {}).get("instance", ""):
+    fail("main.tscn: HUD не инстанцирован из scenes/ui/hud.tscn")
+
+_, hext, _, h = hud
+hroot = h.get("HUD", {})
+if "hud.gd" not in script_of(hext, hroot):
+    fail("hud.tscn: у корня HUD нет скрипта hud.gd")
+# IGNORE = 2. Иначе Control съест движение мыши и _unhandled_input игрока
+# не сработает — классический «камера не крутится».
+if hroot.get("mouse_filter") != "2":
+    fail("hud.tscn: корень HUD должен быть mouse_filter=2 (IGNORE), иначе мышь не дойдёт до игрока")
+for nm in ("DebugLabel", "DebugPanel", "RoomInfo", "PlayerList", "HintLabel", "HealthBar",
+           "HealthLabel", "AbilityBar", "AbilityLabel", "DamageFlash", "CenterMessage"):
+    if not any(k.rsplit("/", 1)[-1] == nm and n.get("unique_name_in_owner") == "true"
+               for k, n in h.items()):
+        fail(f"hud.tscn: {nm} без unique_name_in_owner")
+# Весь HUD, кроме корня, тоже не должен перехватывать мышь.
+for k, n in h.items():
+    if k == "HUD":
+        continue
+    if n.get("mouse_filter", "2") not in ("2", "3"):
+        fail(f"hud.tscn: узел {k} перехватывает мышь (mouse_filter={n['mouse_filter']})")
+
+# ---------- 2b. Лобби: принятие матча до спавна ----------
+_, lext, _, lobby = check_tscn("scenes/ui/lobby.tscn")
+lroot = lobby.get("Lobby", {})
+if "lobby.gd" not in script_of(lext, lroot):
+    fail("lobby.tscn: у корня Lobby нет скрипта lobby.gd")
+if lroot.get("anchors_preset") != "15":
+    fail("lobby.tscn: корень Lobby должен тянуться на весь экран (anchors_preset=15)")
+for nm in ("Title", "Subtitle", "TimerLabel", "TimerBar", "PlayersList",
+           "AcceptButton", "DeclineButton", "StatusLabel"):
+    if not any(k.rsplit("/", 1)[-1] == nm and n.get("unique_name_in_owner") == "true"
+               for k, n in lobby.items()):
+        fail(f"lobby.tscn: {nm} без unique_name_in_owner")
+
+lsrc = (ROOT / "scripts/ui/lobby.gd").read_text(encoding="utf-8")
+# strip_gd() определён ниже, поэтому строки убираем тем же приёмом локально.
+lcode = "\n".join(re.sub(r'"[^"]*"', '""', line.split("#")[0]) for line in lsrc.splitlines())
+for uq in set(re.findall(r'%([A-Za-z_]\w*)', lcode)):
+    if not any(n.get("unique_name_in_owner") == "true" and k.rsplit("/", 1)[-1] == uq
+               for k, n in lobby.items()):
+        fail(f"scripts/ui/lobby.gd: %{uq} не найден в scenes/ui/lobby.tscn")
+for must in ("lobby_start", "lobby_cancel", "lobby_begin_accept", "lobby_player",
+             "MAIN_SCENE", "register_broadcast_receiver"):
+    if must not in lsrc:
+        fail(f"scripts/ui/lobby.gd: нет {must} — сломается приём матча")
+# Гейт: арена грузится ТОЛЬКО из лобби, меню ведёт в лобби.
+if "main/main.tscn" in (ROOT / "scripts/ui/main_menu.gd").read_text(encoding="utf-8"):
+    fail("main_menu.gd: меню не должно грузить main.tscn напрямую — только лобби")
+if "scenes/ui/lobby.tscn" not in (ROOT / "scripts/ui/main_menu.gd").read_text(encoding="utf-8"):
+    fail("main_menu.gd: после входа в комнату надо открывать scenes/ui/lobby.tscn")
+if 'change_scene_to_file(MAIN_SCENE)' not in lsrc:
+    fail("scripts/ui/lobby.gd: арена main.tscn должна грузиться из лобби (после приёма)")
 
 # ---------- 3. Скрипты: пути, узлы, санити ----------
 GD = {
-    "scripts/main/match_manager.gd": ("scenes/main/main.tscn", "Main/MatchManager", m),
-    "scripts/player/player.gd": ("scenes/player/player.tscn", "Player", p),
-    "scripts/ui/main_menu.gd": ("scenes/ui/main_menu.tscn", "MainMenu", u),
-    "scripts/world/underwater_light.gd": ("scenes/main/main.tscn", "Main/UnderwaterLight", m),
-    "scripts/world/arena.gd": ("scenes/main/main.tscn", "Main/Arena", m),
+    "scripts/main/match_manager.gd": ("scenes/main/main.tscn", "Main/MatchManager", mexp),
+    "scripts/player/player.gd": ("scenes/player/player.tscn", "Player", pexp),
+    "scripts/ui/main_menu.gd": ("scenes/ui/main_menu.tscn", "MainMenu", uexp),
+    "scripts/ui/hud.gd": ("scenes/main/main.tscn", "Main/HUD", mexp),
+    "scripts/ui/lobby.gd": ("scenes/ui/lobby.tscn", "Lobby", scene_nodes("scenes/ui/lobby.tscn")),
+    "scripts/player/characters.gd": (None, None, None),
+    "scripts/world/underwater_light.gd": ("scenes/main/main.tscn", "Main/UnderwaterLight", mexp),
+    "scripts/world/arena.gd": ("scenes/main/main.tscn", "Main/Arena", mexp),
     "autoload/app_config.gd": (None, None, None),
+    "autoload/session.gd": (None, None, None),
     "autoload/inputs.gd": (None, None, None),
 }
 
@@ -164,6 +316,53 @@ def strip_gd(text: str) -> list[str]:
             res.append(c); i += 1
         out.append("".join(res))
     return out
+
+# 3b. Опечатки в именах функций. fwrap() вместо wrapf() уже ловили руками —
+# теперь такие вещи видит валидатор.
+BANNED_CALLS = {"fwrap": "wrapf", "fposmod2": "fposmod"}
+KEYWORDS = {
+    "if", "elif", "else", "for", "while", "match", "and", "or", "not", "in", "is",
+    "as", "return", "await", "signal", "class", "extends", "func", "break",
+    "continue", "pass", "super", "var", "const", "enum", "static", "set", "get",
+}
+# Методы движка, которые в GDScript принято звать без точки (через self).
+KNOWN_METHODS = set("""
+get_tree get_node get_node_or_null has_node find_child add_child remove_child
+add_sibling queue_free free call_deferred set_deferred get_parent get_child
+get_children get_child_count is_in_group add_to_group remove_from_group
+get_groups is_inside_tree is_ancestor_of move_and_slide set_physics_process
+connect disconnect is_connected emit_signal get_viewport get_world_3d
+get_first_node_in_group get_nodes_in_group create_timer change_scene_to_file
+reload_current_scene quit set_input_authority has_input_authority has_authority
+get_input_authority add_spawnable_scene spawn despawn rpc rpc_id has_method
+intersect_ray get_property_list queue_redraw create_tween kill is_valid
+draw_line draw_circle draw_rect draw_arc tween_property tween_callback
+set_input_as_handled is_action_pressed get_rid get_world_3d
+""".split())
+BUILTIN_FUNCS = set("""
+abs absf absi acos acosh angle_difference asin asinh assert atan atan2 atanh
+bool int float str string color vector2 vector2i vector3 vector3i vector4
+rect2 rect2i transform2d transform3d plane quaternion aabb basis projection nodepath
+rid dict array callable signal packedbytearray packedstringarray packedint32array
+packedint64array packedfloat32array packedfloat64array packedvector2array
+packedvector3array packedcolorarray
+bezier_interpolate bytes_to_var ceil ceilf ceili clamp clampf clampi cos cosh
+cubed_interpolate db_to_linear deg_to_rad deep_equal ease error_string exp floor
+floorf floori fmod fposmod get_stack hash instance_from_id inverse_lerp
+is_equal_approx is_finite is_inf is_instance_of is_instance_valid is_nan is_same
+is_zero_approx len lerp lerp_angle lerpf linear_to_db load log max maxf maxi min
+minf mini move_toward nearest_po2 pingpong posmod pow preload print print_rich
+print_verbose printerr printraw printt push_error push_warning rad_to_deg
+rand_from_seed randf randf_range randfn randi randi_range randomize range remap
+rid_allocate_id rid_from_int64 round roundf roundi seed sign signf signi sin sinh
+smoothstep snapped snappedf snappedi sqrt step_decimals str str_to_var tan tanh
+type_convert typeof var_to_bytes var_to_str wrap wrapf wrapi
+""".split())
+PROJECT_FUNCS: set = set()
+for rel in GD:
+    PROJECT_FUNCS |= set(
+        re.findall(r"^\s*(?:static\s+)?func\s+(\w+)", (ROOT / rel).read_text(encoding="utf-8"), re.M)
+    )
 
 for rel, (scene, base, nodes) in GD.items():
     src = (ROOT / rel).read_text(encoding="utf-8")
@@ -190,8 +389,8 @@ for rel, (scene, base, nodes) in GD.items():
         if not res_path(rp).exists():
             fail(f"{rel}: путь {rp} отсутствует")
     # узлы (ищем только в коде, без строк — иначе %d/%s из форматов шумят)
+    code = "\n".join(strip_gd(src))
     if scene:
-        code = "\n".join(strip_gd(src))
         refs = set(re.findall(r'\$"([^"]+)"', code)) | set(re.findall(r'get_node(?:_or_null)?\("([^"]+)"', code))
         for r in refs:
             full = base + "/" + r if not r.startswith("/") else r
@@ -208,12 +407,50 @@ for rel, (scene, base, nodes) in GD.items():
         for uq in set(re.findall(r'%([A-Za-z_]\w*)', code)):
             if not any(n.get("unique_name_in_owner") == "true" and k.rsplit("/",1)[-1] == uq for k, n in nodes.items()):
                 fail(f"{rel}: %{uq} не найден в {scene}")
+    # var x := <Variant> — GDScript выведет Variant и (при warnings-as-errors)
+    # не даст запустить игру. Ловим типичный случай: Dictionary.get() и company.
+    for n, line in enumerate(strip_gd(src), 1):
+        m = re.search(r"\bvar\s+\w+\s*:=\s*(.+)$", line)
+        if not m:
+            continue
+        rhs = m.group(1)
+        if re.match(r"^(String|int|float|bool|str|Vector2|Vector3|Color|Packed\w+)\s*\(", rhs):
+            continue          # обёртка даёт конкретный тип
+        if " as " in rhs:
+            continue          # явное приведение
+        if re.search(r"\.(get|get_value|get_or_add)\s*\(", rhs):
+            fail(f"{rel}:{n}: `:=` выводит Variant из .get() — укажи тип через `as` или обёртку")
+    # PackedStringArray не имеет join() в Godot 4 — только String.join(parts)
+    for psname in re.findall(r"var\s+(\w+)\s*(?::=\s*|:\s*PackedStringArray\s*=\s*)PackedStringArray\(\)", src):
+        for n, line in enumerate(code.splitlines(), 1):
+            if re.search(r"\b" + psname + r"\.join\(", line):
+                fail(f"{rel}:{n}: PackedStringArray не имеет join() — пиши \"\\n\".join({psname})")
+    # вызовы неизвестных глобальных функций (обычно = опечатка в имени)
+    known = BUILTIN_FUNCS | PROJECT_FUNCS | KEYWORDS | KNOWN_METHODS
+    for n, line in enumerate(code.splitlines(), 1):
+        for call in re.finditer(r"(?<![.A-Za-z0-9_])([a-z_][A-Za-z0-9_]*)[(]", line):
+            name = call.group(1)
+            if name in known:
+                continue
+            if name in BANNED_CALLS:
+                fail(f"{rel}:{n}: функции {name}() не существует в Godot — используй {BANNED_CALLS[name]}()")
+            else:
+                warn(f"{rel}:{n}: неизвестная функция {name}() — опечатка? Её нет в @GlobalScope и в проекте")
+
+# ---------- 3c. Спавнер: все персонажи зарегистрированы ----------
+mm_src = (ROOT / "scripts/main/match_manager.gd").read_text(encoding="utf-8")
+if "Characters.scene_for" not in mm_src or "add_spawnable_scene" not in mm_src:
+    fail("match_manager.gd: не регистрирует сцены персонажей через Characters.scene_for")
 
 # ---------- 4. project.godot ----------
 pg = (ROOT / "project.godot").read_text(encoding="utf-8")
 mm_ = re.search(r'run/main_scene="([^"]+)"', pg)
 if not mm_ or not res_path(mm_.group(1)).exists():
     fail("project.godot: run/main_scene отсутствует")
+if 'window/stretch/mode="canvas_items"' not in pg:
+    fail('project.godot: нет window/stretch/mode="canvas_items" — интерфейс не тянется под фуллскрин')
+if 'window/stretch/aspect="expand"' not in pg:
+    fail('project.godot: нет window/stretch/aspect="expand" — картинка сплющится на широком экране')
 for am in re.finditer(r'^\w+="\*res://[^"]+"', pg, re.M):
     ap = re.search(r'"\*(res://[^"]+)"', am.group(0)).group(1)
     if not res_path(ap).exists():

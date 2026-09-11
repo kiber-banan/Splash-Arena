@@ -10,6 +10,11 @@ func _ready() -> void:
 	_add_action("move_right", KEY_D)
 	_add_action("ascend", KEY_SPACE)    # всплыть вверх
 	_add_action("descend", KEY_CTRL)    # опуститься вниз
+	_add_action("ability", KEY_E)       # способность персонажа
+	_add_mouse_action("fire", MOUSE_BUTTON_LEFT)  # выстрел гарпуном
+	_add_fullscreen_action()
+	_add_action("toggle_debug", KEY_F3)   # показать/скрыть отладочную панель
+
 
 func _add_action(action_name: StringName, physical_keycode: int) -> void:
 	if InputMap.has_action(action_name):
@@ -17,4 +22,27 @@ func _add_action(action_name: StringName, physical_keycode: int) -> void:
 	InputMap.add_action(action_name)
 	var event := InputEventKey.new()
 	event.physical_keycode = physical_keycode
+	InputMap.action_add_event(action_name, event)
+
+
+func _add_fullscreen_action() -> void:
+	## Фуллскрин: F11 и Alt+Enter (привычное сочетание из Windows-игр).
+	if InputMap.has_action("toggle_fullscreen"):
+		return
+	InputMap.add_action("toggle_fullscreen")
+	var f11 := InputEventKey.new()
+	f11.physical_keycode = KEY_F11
+	InputMap.action_add_event("toggle_fullscreen", f11)
+	var alt_enter := InputEventKey.new()
+	alt_enter.physical_keycode = KEY_ENTER
+	alt_enter.alt_pressed = true
+	InputMap.action_add_event("toggle_fullscreen", alt_enter)
+
+
+func _add_mouse_action(action_name: StringName, button_index: int) -> void:
+	if InputMap.has_action(action_name):
+		return
+	InputMap.add_action(action_name)
+	var event := InputEventMouseButton.new()
+	event.button_index = button_index
 	InputMap.action_add_event(action_name, event)

@@ -1,0 +1,216 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/lobby.gd" id="1_lobby"]
+
+[sub_resource type="StyleBoxFlat" id="sb_panel"]
+bg_color = Color(0.043, 0.086, 0.125, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.11, 0.25, 0.33, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_accept"]
+bg_color = Color(0.063, 0.467, 0.639, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20
+content_margin_top = 14
+content_margin_right = 20
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_accept_hover"]
+bg_color = Color(0.098, 0.616, 0.82, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20
+content_margin_top = 14
+content_margin_right = 20
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_accept_pressed"]
+bg_color = Color(0.035, 0.318, 0.451, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20
+content_margin_top = 14
+content_margin_right = 20
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_decline"]
+bg_color = Color(0.298, 0.106, 0.118, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20
+content_margin_top = 14
+content_margin_right = 20
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_decline_hover"]
+bg_color = Color(0.451, 0.157, 0.169, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20
+content_margin_top = 14
+content_margin_right = 20
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_decline_pressed"]
+bg_color = Color(0.204, 0.071, 0.082, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20
+content_margin_top = 14
+content_margin_right = 20
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="sb_bar_bg"]
+bg_color = Color(0.051, 0.102, 0.145, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_bar_fill"]
+bg_color = Color(0.302, 0.886, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="Lobby" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_lobby")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.027, 0.055, 0.078, 1)
+
+[node name="Root" type="MarginContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 60
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 60
+theme_override_constants/margin_bottom = 36
+
+[node name="Shell" type="VBoxContainer" parent="Root"]
+theme_override_constants/separation = 16
+
+[node name="Header" type="VBoxContainer" parent="Root/Shell"]
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Root/Shell/Header"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.925, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 46
+text = "ПОИСК ИГРОКОВ"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Root/Shell/Header"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.451, 0.718, 0.839, 1)
+theme_override_font_sizes/font_size = 18
+text = "Собираем матч..."
+horizontal_alignment = 1
+
+[node name="TimerPanel" type="PanelContainer" parent="Root/Shell"]
+theme_override_styles/panel = SubResource("sb_panel")
+
+[node name="TimerMargin" type="MarginContainer" parent="Root/Shell/TimerPanel"]
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 14
+
+[node name="TimerBox" type="VBoxContainer" parent="Root/Shell/TimerPanel/TimerMargin"]
+theme_override_constants/separation = 8
+
+[node name="TimerLabel" type="Label" parent="Root/Shell/TimerPanel/TimerMargin/TimerBox"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.302, 0.886, 1, 1)
+theme_override_font_sizes/font_size = 40
+text = "12"
+horizontal_alignment = 1
+
+[node name="TimerBar" type="ProgressBar" parent="Root/Shell/TimerPanel/TimerMargin/TimerBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 14)
+max_value = 12.0
+value = 12.0
+show_percentage = false
+theme_override_styles/background = SubResource("sb_bar_bg")
+theme_override_styles/fill = SubResource("sb_bar_fill")
+
+[node name="PlayersPanel" type="PanelContainer" parent="Root/Shell"]
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("sb_panel")
+
+[node name="PlayersMargin" type="MarginContainer" parent="Root/Shell/PlayersPanel"]
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="PlayersList" type="VBoxContainer" parent="Root/Shell/PlayersPanel/PlayersMargin"]
+unique_name_in_owner = true
+theme_override_constants/separation = 10
+
+[node name="ButtonsRow" type="HBoxContainer" parent="Root/Shell"]
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="AcceptButton" type="Button" parent="Root/Shell/ButtonsRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(320, 72)
+theme_override_styles/normal = SubResource("sb_accept")
+theme_override_styles/hover = SubResource("sb_accept_hover")
+theme_override_styles/pressed = SubResource("sb_accept_pressed")
+theme_override_font_sizes/font_size = 26
+text = "ПРИНЯТЬ"
+
+[node name="DeclineButton" type="Button" parent="Root/Shell/ButtonsRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(240, 72)
+theme_override_styles/normal = SubResource("sb_decline")
+theme_override_styles/hover = SubResource("sb_decline_hover")
+theme_override_styles/pressed = SubResource("sb_decline_pressed")
+theme_override_font_sizes/font_size = 22
+text = "ОТКАЗАТЬСЯ"
+
+[node name="StatusLabel" type="Label" parent="Root/Shell"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.8, 0.925, 1, 1)
+theme_override_font_sizes/font_size = 17
+text = "..."
+horizontal_alignment = 1
+autowrap_mode = 3
