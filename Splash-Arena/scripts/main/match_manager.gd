@@ -302,7 +302,9 @@ func _debug_dump_spawner_state() -> void:
 			str(_arena_ready.keys()),
 			str(_spawn_requests.keys()),
 		])
-	var room := Fusion.get_room()
+	# get_room() у SDK может быть без явного типа: := вывел бы Variant
+	# (а у тебя warnings-as-errors), поэтому простое присваивание.
+	var room = Fusion.get_room()
 	if room != null:
 		if room.has_method("get_player_count"):
 			print("  игроков в комнате=%d" % int(room.get_player_count()))

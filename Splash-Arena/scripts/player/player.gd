@@ -392,8 +392,8 @@ func _shoot(is_new: bool) -> void:
 	# ЗАПАСНОЙ ПУТЬ. Input authority не выдана — наш ввод до сервера не
 	# доедет, поэтому просим сервер разобрать выстрел по присланным
 	# точкам. Как только input authority заработает, сюда не попадаем.
-	var mm := get_tree().get_first_node_in_group(GROUP_MATCH_MANAGER)
-	if mm != null and mm.has_method("request_shot"):
+	var mm := get_tree().get_first_node_in_group(GROUP_MATCH_MANAGER) as MatchManager
+	if mm != null:
 		Fusion.rpc(mm.request_shot, _owner_player_id, from, to)
 
 

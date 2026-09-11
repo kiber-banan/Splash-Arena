@@ -1,3 +1,4 @@
+class_name Lobby
 extends Control
 ## Лобби: сбор игроков и принятие матча (в стиле LoL).
 ##

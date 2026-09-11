@@ -103,13 +103,13 @@ func _handle_escape() -> void:
 	var tree := get_tree()
 	if tree == null:
 		return
-	var mm := tree.get_first_node_in_group("match_manager")
+	var mm := tree.get_first_node_in_group("match_manager") as MatchManager
 	if mm != null:
 		get_viewport().set_input_as_handled()
 		mm.leave_to_menu()
 		return
-	var lobby := tree.get_first_node_in_group("lobby")
-	if lobby != null and lobby.has_method("cancel_search"):
+	var lobby := tree.get_first_node_in_group("lobby") as Lobby
+	if lobby != null:
 		get_viewport().set_input_as_handled()
 		lobby.cancel_search()
 
