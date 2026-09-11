@@ -103,13 +103,18 @@ func _handle_escape() -> void:
 	var tree := get_tree()
 	if tree == null:
 		return
-	var mm := tree.get_first_node_in_group("match_manager") as MatchManager
-	if mm != null:
+	# БЕЗ приведений к классам из сцен (MatchManager, Lobby): автолоады
+	# разбираются раньше сцен, и имя класса в этот момент может быть ещё
+	# неизвестно — GDScript тогда не может вывести тип. Проверяем метод.
+	var mm = tree.get_first_node_in_group("match_manager")
+	if mm != null and mm.has_method("leave_to_menu"):
 		get_viewport().set_input_as_handled()
 		mm.leave_to_menu()
 		return
-	var lobby := tree.get_first_node_in_group("lobby") as Lobby
-	if lobby != null:
+	# БЕЗ приведения к классу Lobby: автолоад разбирается раньше сцен,
+	# и имя класса из сцены в этот момент может быть ещё неизвестно.
+	var lobby = tree.get_first_node_in_group("lobby")
+	if lobby != null and lobby.has_method("cancel_search"):
 		get_viewport().set_input_as_handled()
 		lobby.cancel_search()
 
